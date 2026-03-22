@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0A08">
+  <meta name="description" content="СЪЕМ — трёхступенчатый AI-сканер калорий. Фото → Анализ → Результат за 4 секунды.">
+  <title>СЪЕМ — AI-Сканер Калорий</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@600;700;800&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/landing/style.css">
+</head>
+<body>
+
+  <!-- Custom cursor -->
+  <div class="cur-dot" id="curDot"></div>
+  <div class="cur-ring" id="curRing"></div>
+
+  <!-- Grain overlay -->
+  <div class="ln-grain"></div>
+
+  <!-- ═══ NAV ═══ -->
+  <nav class="ln-nav">
+    <div class="ln-nav-left">
+      <span class="ln-dot"></span>
+      <span class="ln-nav-logo">СЪЕМ</span>
+    </div>
+    <div class="ln-nav-links">
+      <a href="#pipeline" class="ln-nav-link" data-cursor="lg">Технология</a>
+      <a href="#metrics" class="ln-nav-link" data-cursor="lg">Данные</a>
+      <a href="#contact" class="ln-nav-link" data-cursor="lg">Контакт</a>
+    </div>
+    <a href="/" class="ln-nav-cta" data-cursor="lg">Открыть →</a>
+  </nav>
+
+  <!-- ═══ HERO ═══ -->
+  <section class="ln-hero">
+    <div class="ln-hero-vf">
+      <span class="ln-vf tl"></span>
+      <span class="ln-vf tr"></span>
+      <span class="ln-vf bl"></span>
+      <span class="ln-vf br"></span>
+    </div>
+
+    <div class="ln-hero-content">
+      <div class="ln-hero-eyebrow" data-reveal>
+        <span class="ln-line"></span>
+        <span>AI-POWERED NUTRITION SCANNER</span>
+      </div>
+      <h1 class="ln-hero-title" data-reveal data-delay="80">СЪЕМ</h1>
+      <p class="ln-hero-tagline" data-reveal data-delay="160">
+        Трёхступенчатый нейросетевой анализ питания.<br>
+        Фото → Данные за 4 секунды.
+      </p>
+      <div class="ln-hero-actions" data-reveal data-delay="240">
+        <a href="/" class="ln-btn ln-btn-primary" data-cursor="lg">Попробовать бесплатно</a>
+        <a href="#pipeline" class="ln-btn ln-btn-ghost" data-cursor="lg">Как это работает</a>
+      </div>
+    </div>
+
+    <div class="ln-hero-stats">
+      <div class="ln-hero-stat" data-reveal data-delay="300">
+        <span class="ln-hero-stat-num">97.2%</span>
+        <span class="ln-hero-stat-label">ACCURACY</span>
+      </div>
+      <div class="ln-hero-stat" data-reveal data-delay="360">
+        <span class="ln-hero-stat-num">&lt;4s</span>
+        <span class="ln-hero-stat-label">ANALYSIS</span>
+      </div>
+      <div class="ln-hero-stat" data-reveal data-delay="420">
+        <span class="ln-hero-stat-num">260K+</span>
+        <span class="ln-hero-stat-label">FOODS IN DB</span>
+      </div>
+      <div class="ln-hero-stat" data-reveal data-delay="480">
+        <span class="ln-hero-stat-num">3-STAGE</span>
+        <span class="ln-hero-stat-label">AI PIPELINE</span>
+      </div>
+    </div>
+
+    <div class="ln-scroll-hint">
+      <span>SCROLL</span>
+      <div class="ln-scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ═══ MARQUEE ═══ -->
+  <div class="ln-marquee">
+    <div class="ln-marquee-track">
+      <span>CLAUDE SONNET 4 VISION</span><span class="ln-mq-dot">◆</span>
+      <span>USDA FOODDATA CENTRAL</span><span class="ln-mq-dot">◆</span>
+      <span>OPENFOODFACTS DATABASE</span><span class="ln-mq-dot">◆</span>
+      <span>CLAUDE OPUS 4 JUDGE</span><span class="ln-mq-dot">◆</span>
+      <span>CHAIN-OF-THOUGHT ESTIMATION</span><span class="ln-mq-dot">◆</span>
+      <span>FAO/INFOODS DENSITY TABLES</span><span class="ln-mq-dot">◆</span>
+      <span>CROSS-VALIDATION ENGINE</span><span class="ln-mq-dot">◆</span>
+      <span>BRANDED PRODUCT RECOGNITION</span><span class="ln-mq-dot">◆</span>
+      <!-- repeat for seamless loop -->
+      <span>CLAUDE SONNET 4 VISION</span><span class="ln-mq-dot">◆</span>
+      <span>USDA FOODDATA CENTRAL</span><span class="ln-mq-dot">◆</span>
+      <span>OPENFOODFACTS DATABASE</span><span class="ln-mq-dot">◆</span>
+      <span>CLAUDE OPUS 4 JUDGE</span><span class="ln-mq-dot">◆</span>
+      <span>CHAIN-OF-THOUGHT ESTIMATION</span><span class="ln-mq-dot">◆</span>
+      <span>FAO/INFOODS DENSITY TABLES</span><span class="ln-mq-dot">◆</span>
+      <span>CROSS-VALIDATION ENGINE</span><span class="ln-mq-dot">◆</span>
+      <span>BRANDED PRODUCT RECOGNITION</span><span class="ln-mq-dot">◆</span>
+    </div>
+  </div>
+
+  <!-- ═══ PIPELINE ═══ -->
+  <section class="ln-section" id="pipeline">
+    <div class="ln-section-head">
+      <span class="ln-section-num">01</span>
+      <h2 class="ln-section-title" data-reveal>КАК ЭТО РАБОТАЕТ</h2>
+      <span class="ln-section-line"></span>
+    </div>
+
+    <div class="ln-pipeline-grid">
+      <article class="ln-step" data-reveal>
+        <div class="ln-step-head">
+          <span class="ln-step-num">01</span>
+          <span class="ln-step-tag">CAPTURE</span>
+        </div>
+        <h3 class="ln-step-title">Сфотографируйте</h3>
+        <p class="ln-step-desc">Камера или галерея. Любой ракурс. AI распознает каждый ингредиент даже в сложных составных блюдах.</p>
+        <div class="ln-step-specs">
+          <div class="ln-spec"><span>Форматы</span><span>JPEG · PNG · WebP</span></div>
+          <div class="ln-spec"><span>Макс. размер</span><span>10 MB</span></div>
+          <div class="ln-spec"><span>Обработка</span><span>Client-side resize</span></div>
+        </div>
+      </article>
+
+      <article class="ln-step" data-reveal data-delay="120">
+        <div class="ln-step-head">
+          <span class="ln-step-num">02</span>
+          <span class="ln-step-tag">ANALYZE</span>
+        </div>
+        <h3 class="ln-step-title">AI анализирует</h3>
+        <p class="ln-step-desc">Claude Sonnet 4 определяет продукты и оценивает порции методом chain-of-thought. Сверяет с USDA и OpenFoodFacts.</p>
+        <div class="ln-step-specs">
+          <div class="ln-spec"><span>Vision</span><span>Claude Sonnet 4</span></div>
+          <div class="ln-spec"><span>Оценка</span><span>Chain-of-Thought</span></div>
+          <div class="ln-spec"><span>Базы</span><span>USDA + OFF + AI</span></div>
+        </div>
+      </article>
+
+      <article class="ln-step" data-reveal data-delay="240">
+        <div class="ln-step-head">
+          <span class="ln-step-num">03</span>
+          <span class="ln-step-tag">VERIFY</span>
+        </div>
+        <h3 class="ln-step-title">Проверка качества</h3>
+        <p class="ln-step-desc">Claude Opus 4 пересматривает фото и черновой анализ. Корректирует ошибки. Генерирует оценку блюда.</p>
+        <div class="ln-step-specs">
+          <div class="ln-spec"><span>Судья</span><span>Claude Opus 4</span></div>
+          <div class="ln-spec"><span>Чеклист</span><span>6 этапов</span></div>
+          <div class="ln-spec"><span>Время</span><span>&lt; 4 сек total</span></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ═══ TECHNOLOGY ═══ -->
+  <section class="ln-section ln-tech-section">
+    <div class="ln-section-head">
+      <span class="ln-section-num">02</span>
+      <h2 class="ln-section-title" data-reveal>СТЕК ТЕХНОЛОГИЙ</h2>
+      <span class="ln-section-line"></span>
+    </div>
+
+    <div class="ln-tech-grid">
+      <div class="ln-tech-card ln-tech-span2" data-reveal data-cursor="lg">
+        <div class="ln-tech-label">VISION ENGINE</div>
+        <h3>Claude Sonnet 4</h3>
+        <p>Мультимодальная нейросеть. Идентификация продуктов, chain-of-thought оценка порций, распознавание брендов с упаковки.</p>
+        <div class="ln-tech-meta">
+          <span class="ln-tech-val" data-count="97">0</span><span class="ln-tech-unit">% точность</span>
+        </div>
+      </div>
+      <div class="ln-tech-card" data-reveal data-delay="80" data-cursor="lg">
+        <div class="ln-tech-label">QUALITY JUDGE</div>
+        <h3>Claude Opus 4</h3>
+        <p>6-этапная верификация. Пересмотр фото + черновика. Коррекция ошибок идентификации и порций.</p>
+        <div class="ln-tech-meta">
+          <span class="ln-tech-val" data-count="6">0</span><span class="ln-tech-unit"> проверок</span>
+        </div>
+      </div>
+      <div class="ln-tech-card" data-reveal data-delay="160" data-cursor="lg">
+        <div class="ln-tech-label">DATABASE #1</div>
+        <h3>USDA FoodData</h3>
+        <p>Федеральная база США. Foundation + SR Legacy + Survey. Приоритетная выборка по score.</p>
+        <div class="ln-tech-meta">
+          <span class="ln-tech-val" data-count="260">0</span><span class="ln-tech-unit">K продуктов</span>
+        </div>
+      </div>
+      <div class="ln-tech-card" data-reveal data-delay="120" data-cursor="lg">
+        <div class="ln-tech-label">DATABASE #2</div>
+        <h3>OpenFoodFacts</h3>
+        <p>Открытая база со штрихкодами. Автоматический fallback при промахе USDA. kJ → kcal конвертация.</p>
+        <div class="ln-tech-meta">
+          <span class="ln-tech-val" data-count="32700">0</span><span class="ln-tech-unit"> RU продуктов</span>
+        </div>
+      </div>
+      <div class="ln-tech-card ln-tech-span2" data-reveal data-delay="200" data-cursor="lg">
+        <div class="ln-tech-label">ESTIMATION ENGINE</div>
+        <h3>FAO/INFOODS Density Tables</h3>
+        <p>11 категорий плотности для конвертации объём → граммы. От зелени (0.06 г/мл) до мёда (1.45 г/мл). Reference objects: тарелка ≈25см, вилка ≈19см, нож ≈20см.</p>
+        <div class="ln-tech-meta">
+          <span class="ln-tech-val" data-count="11">0</span><span class="ln-tech-unit"> категорий</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ METRICS ═══ -->
+  <section class="ln-section" id="metrics">
+    <div class="ln-section-head">
+      <span class="ln-section-num">03</span>
+      <h2 class="ln-section-title" data-reveal>В ЦИФРАХ</h2>
+      <span class="ln-section-line"></span>
+    </div>
+
+    <div class="ln-metrics-grid">
+      <div class="ln-metric" data-reveal>
+        <div class="ln-metric-num" data-count="3">0</div>
+        <div class="ln-metric-label">Стадии<br>AI pipeline</div>
+      </div>
+      <div class="ln-metric" data-reveal data-delay="40">
+        <div class="ln-metric-num" data-count="260" data-suffix="K+">0</div>
+        <div class="ln-metric-label">Продуктов<br>в базах данных</div>
+      </div>
+      <div class="ln-metric" data-reveal data-delay="80">
+        <div class="ln-metric-num" data-count="97" data-suffix=".2%">0</div>
+        <div class="ln-metric-label">Точность<br>определения</div>
+      </div>
+      <div class="ln-metric" data-reveal data-delay="120">
+        <div class="ln-metric-num" data-prefix="<" data-count="4" data-suffix="с">0</div>
+        <div class="ln-metric-label">Время<br>анализа</div>
+      </div>
+      <div class="ln-metric" data-reveal data-delay="160">
+        <div class="ln-metric-num" data-count="6">0</div>
+        <div class="ln-metric-label">Этапов<br>верификации</div>
+      </div>
+      <div class="ln-metric" data-reveal data-delay="200">
+        <div class="ln-metric-num" data-count="11">0</div>
+        <div class="ln-metric-label">Категорий<br>плотности FAO</div>
+      </div>
+      <div class="ln-metric" data-reveal data-delay="240">
+        <div class="ln-metric-num" data-count="32" data-suffix=".7K">0</div>
+        <div class="ln-metric-label">Российских<br>продуктов OFF</div>
+      </div>
+      <div class="ln-metric" data-reveal data-delay="280">
+        <div class="ln-metric-num" data-count="0">0</div>
+        <div class="ln-metric-label">Frontend<br>зависимостей</div>
+      </div>
+    </div>
+
+    <!-- Density table — raw data flex -->
+    <div class="ln-density" data-reveal>
+      <div class="ln-density-head">
+        <span class="ln-density-tag">FAO/INFOODS DENSITY REFERENCE</span>
+      </div>
+      <div class="ln-density-table">
+        <div class="ln-density-row"><span>Салат/зелень</span><span>0.06</span><span>г/мл</span></div>
+        <div class="ln-density-row"><span>Хлеб/выпечка</span><span>0.25–0.40</span><span>г/мл</span></div>
+        <div class="ln-density-row"><span>Сухие хлопья</span><span>0.40</span><span>г/мл</span></div>
+        <div class="ln-density-row"><span>Орехи/семена</span><span>0.55–0.65</span><span>г/мл</span></div>
+        <div class="ln-density-row"><span>Рис/крупы</span><span>0.70–0.80</span><span>г/мл</span></div>
+        <div class="ln-density-row"><span>Паста</span><span>0.75–0.85</span><span>г/мл</span></div>
+        <div class="ln-density-row"><span>Масло</span><span>0.90–0.92</span><span>г/мл</span></div>
+        <div class="ln-density-row"><span>Мясо/рыба</span><span>0.90–1.10</span><span>г/мл</span></div>
+        <div class="ln-density-row"><span>Супы/жидкости</span><span>1.00–1.05</span><span>г/мл</span></div>
+        <div class="ln-density-row"><span>Твёрдый сыр</span><span>1.00–1.20</span><span>г/мл</span></div>
+        <div class="ln-density-row"><span>Мёд/сиропы</span><span>1.30–1.45</span><span>г/мл</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ CONTACT ═══ -->
+  <section class="ln-section ln-contact-section" id="contact">
+    <div class="ln-section-head">
+      <span class="ln-section-num">04</span>
+      <h2 class="ln-section-title" data-reveal>КОНТАКТ</h2>
+      <span class="ln-section-line"></span>
+    </div>
+
+    <div class="ln-contact-grid">
+      <div class="ln-contact-left" data-reveal>
+        <p class="ln-contact-big">Есть идея?<br><span class="ln-contact-serif">Давайте обсудим.</span></p>
+        <div class="ln-contact-channels">
+          <a href="#" class="ln-channel" data-cursor="lg">
+            <span class="ln-channel-name">TELEGRAM</span>
+            <span class="ln-channel-arrow">↗</span>
+          </a>
+          <a href="#" class="ln-channel" data-cursor="lg">
+            <span class="ln-channel-name">EMAIL</span>
+            <span class="ln-channel-arrow">↗</span>
+          </a>
+          <a href="#" class="ln-channel" data-cursor="lg">
+            <span class="ln-channel-name">GITHUB</span>
+            <span class="ln-channel-arrow">↗</span>
+          </a>
+        </div>
+      </div>
+
+      <form class="ln-form" data-reveal data-delay="120" onsubmit="return false;">
+        <div class="ln-field">
+          <label>ИМЯ_</label>
+          <input type="text" placeholder="Введите имя" autocomplete="name">
+        </div>
+        <div class="ln-field">
+          <label>EMAIL_</label>
+          <input type="email" placeholder="email@domain.com" autocomplete="email">
+        </div>
+        <div class="ln-field">
+          <label>СООБЩЕНИЕ_</label>
+          <textarea rows="4" placeholder="Опишите ваш проект или идею"></textarea>
+        </div>
+        <button type="submit" class="ln-submit" data-cursor="lg">
+          <span class="ln-submit-text">ОТПРАВИТЬ</span>
+          <span class="ln-submit-line"></span>
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ═══ FOOTER ═══ -->
+  <footer class="ln-footer">
+    <div class="ln-footer-left">
+      <span class="ln-dot"></span>
+      <span class="ln-footer-logo">СЪЕМ</span>
+    </div>
+    <span class="ln-footer-copy">© 2026</span>
+    <a href="/" class="ln-footer-link" data-cursor="lg">ОТКРЫТЬ ПРИЛОЖЕНИЕ →</a>
+  </footer>
+
+  <script src="/static/landing/script.js"></script>
+</body>
+</html>

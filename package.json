@@ -1,0 +1,10 @@
+{
+  "name": "howmanycalories",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "python start.py",
+    "kill": "powershell -Command \"Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }; Write-Host 'Port 8000 cleared'\"",
+    "host": "ngrok http 8000",
+    "render-intro": "cd remotion && npm run render"
+  }
+}
