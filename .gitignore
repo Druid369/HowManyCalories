@@ -10,3 +10,11 @@ dist/
 build/
 .claude/
 plan*.json
+
+# User data — PII, must never be committed
+data/scans.db
+data/scans.db-journal
+data/scans.db-wal
+data/scans.db-shm
+data/images/
+data/avatars/

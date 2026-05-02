@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<html lang="ru">
+<!-- data-theme is set inline so the page paints in the right palette
+     before any JS runs. Phase 2 will swap this attribute via the theme
+     picker and persist the choice; Phase 0 only registers the default. -->
+<html lang="ru" data-theme="warm">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -9,20 +12,69 @@
   <title>FORK</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/app.css">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/app.css?v=20260502-pr3b-legacy-cleanup">
 </head>
 <body>
 
   <div class="app" id="appShell">
 
+    <!-- Cinematic Hearth atmosphere — studio-lighting recipe with
+         four overlapping directional gradients building photographic
+         volume across the full shell, plus a slow breathing pulse on
+         the key light so the whole surface feels alive. No blobs,
+         no patterns, no grids — just stacked directional warmth +
+         corner depth. See ATMOSPHERE section in app.css. -->
+    <div class="atmosphere" aria-hidden="true">
+      <div class="atmosphere-key"></div>
+      <div class="atmosphere-fill"></div>
+      <div class="atmosphere-rim"></div>
+      <div class="atmosphere-vignette"></div>
+    </div>
+
     <!-- Header -->
-    <header class="app-header">
+    <header class="app-header glass glass--subtle">
       <div class="logo">
+        <!-- Custom-drawn lowercase 'fork' logotype. Monoline geometric
+             paths in the same stroke language as the app's other SVG
+             icons (round caps + joins, 2.6 stroke). Color inherits via
+             currentColor so theme tokens apply. The text spans below
+             stay in DOM (CSS-hidden) for backwards compat with older
+             CSS rules that targeted them. -->
+        <svg class="logo-mark" viewBox="0 0 78 32" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fork">
+          <path d="M 17 5 Q 12 5 12 8.5 L 12 28"/>
+          <path d="M 5 14 L 18 14"/>
+          <circle cx="30" cy="19" r="9"/>
+          <path d="M 44 28 L 44 12 Q 44 9.5 47 9.5 Q 52 9.5 54 13"/>
+          <path d="M 60 5 L 60 28"/>
+          <path d="M 60 20 L 72 12"/>
+          <path d="M 60 20 L 72 28"/>
+        </svg>
         <span class="logo-dot"></span>
         <span class="logo-name">FORK</span>
       </div>
-      <span class="logo-tagline">AI-сканер калорий</span>
+      <div class="header-actions">
+        <button class="header-icon-btn" id="btnOpenSettings" aria-label="Настройки" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+        <button class="header-icon-btn" id="btnOpenCalendar" aria-label="Календарь питания" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8"  y1="2" x2="8"  y2="6"/>
+            <line x1="3"  y1="10" x2="21" y2="10"/>
+          </svg>
+        </button>
+        <button class="header-icon-btn" id="btnOpenAccount" aria-label="Аккаунт" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+            <path d="M15.75 7.5a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/>
+            <path d="M4.5 20.25a7.5 7.5 0 0 1 15 0"/>
+          </svg>
+        </button>
+      </div>
     </header>
 
     <!-- Views -->
@@ -36,7 +88,7 @@
           <div class="upload-content">
 
             <!-- Scan Zone -->
-            <div class="scan-zone" id="scanZone">
+            <div class="scan-zone glass" id="scanZone">
               <!-- Ambient background layers -->
               <div class="scan-zone-bg"></div>
               <div class="scan-zone-glow"></div>
@@ -47,44 +99,41 @@
               <div class="scan-zone-arc"></div>
               <!-- Slow light sweep -->
               <div class="scan-zone-sweep"></div>
-              <!-- Viewfinder corner brackets -->
-              <span class="vf-corner vf-tl"></span>
-              <span class="vf-corner vf-tr"></span>
-              <span class="vf-corner vf-bl"></span>
-              <span class="vf-corner vf-br"></span>
-              <!-- Measurement tick marks -->
-              <span class="vf-tick vf-tick-t"></span>
-              <span class="vf-tick vf-tick-b"></span>
-              <span class="vf-tick vf-tick-l"></span>
-              <span class="vf-tick vf-tick-r"></span>
               <div class="scan-zone-inner">
-                <!-- CTA text -->
-                <p class="scan-cta">Сфотографируйте блюдо</p>
-                <div class="scan-orbs">
-                  <button class="scan-orb" id="btnCamera" aria-label="Камера">
-                    <div class="orb-ring"></div>
-                    <div class="orb-ring orb-ring-outer"></div>
-                    <div class="orb-glow"></div>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="26" height="26">
-                      <path d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/>
-                      <path d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"/>
+                <!-- Tile splits cleanly into two intent zones:
+                     - Top (.scan-camera-zone): tap anywhere → camera. The
+                       cinematic shutter is the focal anchor, but the whole
+                       region is the tap target.
+                     - Bottom strip (.scan-gallery-zone): icon + label, taps
+                       trigger the gallery file picker.
+                     No ambiguous prompt text in between. -->
+                <div class="scan-camera-zone" id="scanCameraZone">
+                  <button class="scan-shutter" id="btnCamera" aria-label="Сделать снимок">
+                    <svg class="shutter-bezel" viewBox="0 0 200 200" aria-hidden="true">
+                      <defs>
+                        <path id="shutterBezelPath" d="M 100,100 m -78,0 a 78,78 0 1,1 156,0 a 78,78 0 1,1 -156,0"/>
+                      </defs>
+                      <text class="shutter-bezel-text">
+                        <textPath href="#shutterBezelPath">СНИМИ · ОЦЕНИ · УЧТИ · ИЗУЧИ · </textPath>
+                      </text>
                     </svg>
-                    <span class="orb-label">Камера</span>
-                  </button>
-                  <button class="scan-orb orb-gallery" id="btnGallery" aria-label="Галерея">
-                    <div class="orb-ring"></div>
-                    <div class="orb-ring orb-ring-outer"></div>
-                    <div class="orb-glow"></div>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="26" height="26">
-                      <rect x="2.25" y="2.25" width="19.5" height="19.5" rx="2.25"/>
-                      <path d="m2.25 15.75 5.354-5.354a2.246 2.246 0 0 1 3.182 0l5.354 5.354"/>
-                      <path d="m15.75 15.75.354-.354a2.246 2.246 0 0 1 3.182 0l2.514 2.514"/>
-                      <circle cx="9" cy="8.25" r="1.5"/>
-                    </svg>
-                    <span class="orb-label">Галерея</span>
+                    <span class="shutter-core">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="30" height="30" aria-hidden="true">
+                        <path d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/>
+                        <path d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0Z"/>
+                      </svg>
+                    </span>
                   </button>
                 </div>
-                <p class="scan-sub">или перетащите изображение</p>
+                <button class="scan-gallery-zone" id="btnGallery" aria-label="Выбрать из галереи">
+                  <svg class="scan-gallery-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true">
+                    <rect x="2.25" y="2.25" width="19.5" height="19.5" rx="2.25"/>
+                    <path d="m2.25 15.75 5.354-5.354a2.246 2.246 0 0 1 3.182 0l5.354 5.354"/>
+                    <path d="m15.75 15.75.354-.354a2.246 2.246 0 0 1 3.182 0l2.514 2.514"/>
+                    <circle cx="9" cy="8.25" r="1.5"/>
+                  </svg>
+                  <span class="scan-gallery-label">Из галереи</span>
+                </button>
               </div>
               <div class="drag-overlay" id="dragOverlay">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="32" height="32"><path d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
@@ -92,10 +141,84 @@
               </div>
             </div>
 
+            <!-- Day-hero — daily-consumption dashboard. Now sits BELOW the
+                 scan zone (upload tile is the first thing the user sees
+                 on the main tab) and ABOVE the water tile. Hidden when
+                 the day has no consumed entries so first-time users
+                 don't see "0 / 2000" before their first scan. -->
+            <div class="day-hero" id="dayHero" style="display:none">
+              <div class="day-hero-banner glass">
+                <div class="day-hero-meta-row">
+                  <span class="day-hero-label">Сегодня</span>
+                  <span class="day-hero-kicker" id="dayHeroKicker"></span>
+                </div>
+                <div class="day-hero-current" id="dayHeroCurrent">0</div>
+                <div class="day-hero-meta">
+                  <span class="day-hero-unit">ккал</span>
+                  <span class="day-hero-goal" id="dayHeroGoal">из 2000</span>
+                </div>
+                <div class="day-hero-progress">
+                  <div class="day-hero-progress-fill" id="dayHeroProgressFill"></div>
+                </div>
+                <div class="day-hero-macros" id="dayHeroMacros">
+                  <span class="day-hero-macro day-hero-macro-p"><span class="day-hero-macro-label">Б</span><span class="day-hero-macro-value" data-macro="p">0</span>г</span>
+                  <span class="day-hero-macro day-hero-macro-c"><span class="day-hero-macro-label">У</span><span class="day-hero-macro-value" data-macro="c">0</span>г</span>
+                  <span class="day-hero-macro day-hero-macro-f"><span class="day-hero-macro-label">Ж</span><span class="day-hero-macro-value" data-macro="f">0</span>г</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Water tracker — quick-log tile. Sits between the day-hero
+                 and recent scans, occupies a single horizontal slab. State
+                 is localStorage-only (no server, no user accounts). -->
+            <div class="water-tile glass" id="waterTile">
+              <div class="water-tile-row">
+                <!-- Water droplet — outline + an internal "water level" rect
+                     clipped to the droplet shape. The rect's y attribute is
+                     driven from JS to match the day's progress (full = y:0,
+                     empty = y:24). On +250/+500 taps, JS springs the y to
+                     the new level with an overshoot for the glug feel. -->
+                <svg class="water-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+                  <defs>
+                    <clipPath id="waterDropClip">
+                      <path d="M12 2.5C12 2.5 6 9.5 6 14.5a6 6 0 0 0 12 0c0-5-6-12-6-12Z"/>
+                    </clipPath>
+                  </defs>
+                  <rect class="water-fill" id="waterIconFill" x="0" y="24" width="24" height="24" clip-path="url(#waterDropClip)"/>
+                  <path d="M12 2.5C12 2.5 6 9.5 6 14.5a6 6 0 0 0 12 0c0-5-6-12-6-12Z"/>
+                  <path d="M9 14.5a3 3 0 0 0 3 3" opacity=".5"/>
+                </svg>
+                <div class="water-stat">
+                  <span class="water-current" id="waterCurrent">0</span>
+                  <span class="water-unit"><span id="waterTarget">/ 2000</span> мл</span>
+                </div>
+                <div class="water-actions">
+                  <button class="water-add" data-add="250" type="button">+250</button>
+                  <button class="water-add" data-add="500" type="button">+500</button>
+                  <button class="water-undo" id="btnWaterUndo" type="button" aria-label="Отменить" title="Отменить последнее">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+                      <polyline points="1 4 1 10 7 10"/>
+                      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="water-progress-bar"
+                   id="waterProgressBar"
+                   role="progressbar"
+                   aria-valuemin="0"
+                   aria-valuemax="2000"
+                   aria-valuenow="0"
+                   aria-label="Вода за сегодня">
+                <div class="water-progress-fill" id="waterProgressFill"></div>
+              </div>
+            </div>
+
             <!-- Recent Scans -->
             <div class="recent-section" id="recentSection">
               <div class="row-header">
-                <span class="row-label">Недавние</span>
+                <span class="row-label">Последние</span>
+                <button class="row-link" id="btnViewAllHistory">Все →</button>
               </div>
               <div class="recent-list" id="recentList"></div>
             </div>
@@ -103,99 +226,14 @@
           </div>
         </div><!-- /screen-upload -->
 
-        <!-- Screen: Analyzing -->
-        <div class="screen" id="screen-analyzing">
-          <div class="analyzing-wrap">
-            <div class="analyzing-img-box">
-              <img id="analyzingImg" alt="" class="analyzing-img">
-              <div class="scan-overlay">
-                <div class="scan-line"></div>
-              </div>
-              <div class="scan-crt"></div>
-              <span class="corner tl"></span>
-              <span class="corner tr"></span>
-              <span class="corner bl"></span>
-              <span class="corner br"></span>
-            </div>
-            <div class="analyzing-text">
-              <p class="analyzing-title">Анализируем блюдо</p>
-              <p class="analyzing-sub">ИИ определяет продукты и рассчитывает питательную ценность</p>
-              <div class="progress-track">
-                <div class="progress-fill"></div>
-              </div>
-            </div>
-          </div>
-        </div><!-- /screen-analyzing -->
-
-        <!-- Screen: Results -->
-        <div class="screen" id="screen-results">
-          <div class="results-wrap">
-
-            <!-- Nav row -->
-            <div class="results-nav">
-              <button class="icon-btn" id="btnBack" aria-label="Назад">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="15 18 9 12 15 6"/></svg>
-              </button>
-              <span class="results-nav-title">Анализ питания</span>
-              <button class="save-btn" id="btnSave">Сохранить</button>
-            </div>
-
-            <!-- Summary card -->
-            <div class="summary-card">
-              <div class="summary-top">
-                <img id="resultThumb" alt="" class="result-thumb">
-                <div class="cal-block">
-                  <div class="cal-number" id="calNumber">0</div>
-                  <div class="cal-unit">ккал</div>
-                  <div class="confidence-tag" id="confidenceTag"></div>
-                  <span class="source-badge" id="sourceTag" style="display:none"></span>
-                </div>
-              </div>
-              <div class="macro-bars" id="macroBars"></div>
-            </div>
-
-            <!-- Items -->
-            <div class="section-block">
-              <div class="row-header">
-                <span class="row-label">Обнаруженные продукты</span>
-                <span class="row-count" id="itemCount"></span>
-              </div>
-              <div class="items-list" id="itemsList"></div>
-            </div>
-
-            <!-- Health Insight -->
-            <div class="insight-card" id="insightCard" style="display:none">
-              <div class="insight-head">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a23.54 23.54 0 0 0-2.688 2.11C.945 12.486.5 13.354.5 14.25c0 2.278 3.694 4.126 8.25 4.126S17 16.528 17 14.25c0-.896-.445-1.764-1.311-2.493"/><path d="M12 2.25c-2.21 0-4 2.015-4 4.5S9.79 11.25 12 11.25s4-2.015 4-4.5-1.79-4.5-4-4.5Z"/></svg>
-                Оценка блюда
-              </div>
-              <p class="insight-body" id="insightBody"></p>
-            </div>
-
-            <!-- Notes -->
-            <div class="notes-card" id="notesCard">
-              <div class="notes-head">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                Заметки
-              </div>
-              <p class="notes-body" id="notesBody"></p>
-            </div>
-
-            <button class="rescan-btn" id="btnScanAgain">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-              Сканировать ещё
-            </button>
-
-            <div class="results-attribution" id="resultsAttribution">
-              Данные о питании: USDA FoodData Central
-            </div>
-
-          </div>
-        </div><!-- /screen-results -->
+        <!-- (screen-results removed in Phase B — the report is now a
+             top-level overlay positioned outside the views container so
+             the scanner tab stays visible behind it. See #reportOverlay
+             near the bottom of .app.) -->
 
         <!-- Error overlay -->
         <div class="error-overlay" id="errorOverlay">
-          <div class="error-card">
+          <div class="error-card glass">
             <div class="error-icon" id="errorIcon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" width="28" height="28">
                 <circle cx="12" cy="12" r="10"/>
@@ -213,31 +251,705 @@
 
       <!-- ══ HISTORY VIEW ══ -->
       <div class="view" id="view-history">
-        <div class="history-head">
-          <span class="history-title">История сканирований</span>
-          <button class="clear-btn" id="btnClear">Очистить</button>
-        </div>
-        <div class="daily-summary" id="dailySummary" style="display:none">
-          <div class="daily-label">Сегодня</div>
-          <div class="daily-bar-wrap">
-            <div class="daily-bar">
-              <div class="daily-bar-fill" id="dailyBarFill"></div>
-            </div>
-            <div class="daily-numbers">
-              <span class="daily-current" id="dailyCurrent">0</span>
-              <span class="daily-sep">/</span>
-              <span class="daily-goal" id="dailyGoal">2,000</span>
-              <span class="daily-unit">ккал</span>
-            </div>
-          </div>
-        </div>
+        <!-- Day-hero moved to scanner tab (above scan zone) so the
+             scanner is the user's main dashboard. History is the full
+             chronological list, including non-consumed entries. The
+             per-date totals at the top of each day group already
+             surface day-level kcal in this view. -->
         <div class="history-content" id="historyContent"></div>
       </div>
 
     </main><!-- /views -->
 
+    <!-- Analyzing overlay (Phase 1).
+         Floating card that hovers over the scanner during the 30-60s
+         AI pipeline. Replaces the legacy in-place .scan-zone.analyzing
+         UI: instead of cramping the analysis state into a small tile,
+         the photo + stage indicator + items list + event log live in a
+         dedicated 88vh card with a blurred backdrop, mirroring the
+         report-overlay pattern so the morph from analyzing→report is a
+         single shared-backdrop choreography (Phase 1.5).
+
+         Phase 1.1 ships the SCAFFOLD only — markup + CSS, no JS wiring.
+         The overlay is hidden by default; force-visible by toggling
+         the .open class in DevTools to verify the layout.
+         Phase 1.2 wires the SSE consumer to actually drive it. -->
+    <div class="analyzing-overlay" id="analyzingOverlay" role="dialog" aria-modal="true" aria-label="Анализирую блюдо" aria-hidden="true">
+      <div class="analyzing-overlay-backdrop" id="analyzingOverlayBackdrop"></div>
+      <div class="analyzing-overlay-card glass" id="analyzingOverlayCard">
+
+        <!-- Photo frame — top section. The image is dimmed to 0.7 by
+             default; per-stage overlays (scan-line, sparkle grid,
+             breathing glow) sit ABOVE the image, BELOW the bbox layer.
+             Bbox brackets are positioned absolutely as % of this frame
+             so they track the photo regardless of card width.
+             pointer-events: none on the frame blocks iOS Safari's
+             long-press image-preview gesture. -->
+        <div class="analyzing-overlay-photo-frame">
+          <img class="analyzing-overlay-photo" id="analyzingOverlayPhoto" alt="">
+          <div class="analyzing-overlay-photo-dim"></div>
+          <div class="analyzing-overlay-scanline" aria-hidden="true"></div>
+          <div class="analyzing-overlay-sparkles" aria-hidden="true"></div>
+          <div class="analyzing-overlay-bbox-layer" id="analyzingOverlayBboxLayer" aria-hidden="true"></div>
+        </div>
+
+        <!-- Stage indicator: 3 segments, fill width = current progress.
+             Active segment has a brighter accent; completed segments
+             stay solid. Stage labels swap underneath via JS. -->
+        <div class="analyzing-overlay-stages" role="progressbar" aria-valuemin="0" aria-valuemax="3">
+          <span class="analyzing-overlay-stage-seg" data-stage="1"></span>
+          <span class="analyzing-overlay-stage-seg" data-stage="2"></span>
+          <span class="analyzing-overlay-stage-seg" data-stage="3"></span>
+        </div>
+
+        <!-- Stage label + progress meta row. Label is verb-form first-
+             person Russian (Распознаю / Уточняю / Суммирую) per the AI-
+             voice convention. ETA decrements client-side from server's
+             initial value. -->
+        <div class="analyzing-overlay-stage-label" id="analyzingOverlayStageLabel">Распознаю</div>
+        <div class="analyzing-overlay-meta-row">
+          <span class="analyzing-overlay-pct" id="analyzingOverlayPct">0%</span>
+          <span class="analyzing-overlay-eta" id="analyzingOverlayEta">осталось ~22 сек</span>
+        </div>
+
+        <!-- Items section — item cards stream in from the right as
+             item_found events arrive. Source badge appears on
+             item_enriched. Number-flips animate on item_revised. The
+             header includes a count that ticks up in real time. -->
+        <div class="analyzing-overlay-items">
+          <div class="analyzing-overlay-items-head">
+            <span class="analyzing-overlay-items-label">Найдено</span>
+            <span class="analyzing-overlay-items-count" id="analyzingOverlayItemsCount">0</span>
+          </div>
+          <div class="analyzing-overlay-items-list" id="analyzingOverlayItemsList">
+            <!-- Item cards inserted at runtime. Phase 1.1 leaves this
+                 empty so the layout collapses naturally to a thin
+                 placeholder row. -->
+          </div>
+        </div>
+
+        <!-- Event log — the AI's running thought stream. Latest 3 lines
+             visible; older lines fade out at the top. Mono font, low-
+             chroma color. Drives the "the AI is thinking out loud"
+             feel that fills the long wait. -->
+        <div class="analyzing-overlay-log" id="analyzingOverlayLog" aria-live="polite" aria-atomic="false">
+          <!-- Log lines appended at runtime. -->
+        </div>
+
+        <!-- Cancel chip — bottom-right corner of the CARD itself (not
+             the photo tile). Held for 1s to commit cancellation;
+             release earlier reverses the iris cover. The cover sits
+             BEHIND the chip (z-index 11 vs 12) and spans the entire
+             card so the user gets card-level red feedback. -->
+        <button class="analyzing-overlay-cancel" id="analyzingOverlayCancel" type="button" aria-label="Отмена анализа">
+          <span class="analyzing-overlay-cancel-label">Отмена</span>
+        </button>
+        <div class="analyzing-overlay-cancel-cover" id="analyzingOverlayCancelCover" aria-hidden="true"></div>
+
+      </div>
+    </div>
+
+    <!-- Report overlay — hovering tile over the scanner tab. Replaces
+         the previous full-screen results panel + post-scan popup with
+         a single near-fullscreen card that the scanner shows behind a
+         blurred backdrop. Closes via large X buttons in the top-right
+         and bottom-right corners, or via a backdrop tap. Phase C will
+         add swipe-to-choose gestures (right=eat, left=skip). For now
+         the overlay opens after every successful analyze; entries are
+         eager-saved with consumed=false; user changes consumed via the
+         bite icon on the recent tile (until Phase C). -->
+    <div class="report-overlay" id="reportOverlay" role="dialog" aria-modal="true" aria-label="Результат анализа" aria-hidden="true" data-mode="fresh">
+      <div class="report-overlay-backdrop" id="reportOverlayBackdrop"></div>
+      <div class="report-content glass" id="reportContent">
+
+        <!-- Top close bar — review mode only. Full-width, ~40px tall,
+             tap anywhere on it to close the overlay. Hidden in fresh
+             mode (where swipe is the only close mechanism). -->
+        <button class="report-close-bar report-close-bar-top" id="btnReportCloseBarTop" type="button" aria-label="Закрыть">
+          <svg class="report-close-bar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="6" y1="18" x2="18" y2="6"/>
+          </svg>
+        </button>
+
+        <!-- Scrollable content body. Magazine-hero, items, analysis,
+             swipe-hint or attribution. The previous in-scroll nav row
+             (Save + X) is gone — close bars at top and bottom of the
+             card cover that role; edits auto-commit (no separate save
+             tap needed). -->
+        <div class="report-scroll" id="reportScroll">
+
+          <!-- Hidden compatibility node — kept so legacy JS references
+               to btnSave / .results-nav don't throw on null. CSS sets
+               display:none. Phase D will delete entirely. -->
+          <div class="results-nav" hidden>
+            <button class="save-btn" id="btnSave">Сохранить</button>
+            <button class="report-close report-close-top" id="btnReportCloseTop" type="button" aria-label="Закрыть"></button>
+          </div>
+
+          <!-- Summary card — magazine-style hero with the photo bleeding edge-to-edge,
+               calorie number overlaid on a vertical gradient at the bottom-left. -->
+          <div class="summary-card glass">
+            <div class="summary-hero">
+              <img id="resultThumb" alt="" class="hero-image">
+              <div class="hero-grain"></div>
+              <div class="hero-gradient"></div>
+              <span class="hero-meta-tag" id="heroMetaTag" hidden>Анализ</span>
+              <div class="hero-content">
+                <div class="cal-number" id="calNumber">0</div>
+                <div class="cal-unit-row">
+                  <span class="cal-unit">ккал</span>
+                  <span class="confidence-tag" id="confidenceTag" hidden></span>
+                </div>
+              </div>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-rings">
+              <div class="macro-bars" id="macroBars"></div>
+            </div>
+          </div>
+
+          <!-- Validation verdict card (hidden until "Исправить…" is tapped) -->
+          <div class="verdict-card" id="verdictCard" hidden>
+            <div class="verdict-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                <path d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.745 3.745 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/>
+              </svg>
+              <span class="verdict-title" id="verdictTitle">Шеф-повар проверил</span>
+              <button class="verdict-close" id="btnVerdictClose" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14">
+                  <line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/>
+                </svg>
+              </button>
+            </div>
+            <p class="verdict-overall" id="verdictOverall" hidden></p>
+            <div class="verdict-items" id="verdictItems"></div>
+          </div>
+
+          <!-- Items -->
+          <div class="section-block">
+            <div class="row-header">
+              <div class="row-label-group">
+                <span class="row-label">Обнаружено</span>
+                <span class="row-count" id="itemCount"></span>
+              </div>
+              <button class="add-pill" id="btnOpenAddSheet" aria-label="Добавить ингредиент">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="13" height="13">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5"  y1="12" x2="19" y2="12"/>
+                </svg>
+                Ингредиент
+              </button>
+            </div>
+            <div class="items-list" id="itemsList"></div>
+          </div>
+
+          <!-- Analysis card — combined insight + collapsible technical notes. -->
+          <div class="analysis-card" id="analysisCard" style="display:none">
+            <div class="analysis-head">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+                <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/>
+                <path d="M18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z"/>
+              </svg>
+              <span class="analysis-title">Оценка блюда</span>
+            </div>
+            <ul class="analysis-points" id="insightBody"></ul>
+            <button class="notes-toggle" id="btnNotesToggle" hidden>
+              <svg class="notes-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="11" height="11">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+              <span>Технические детали</span>
+            </button>
+            <div class="analysis-notes" id="notesBody"></div>
+          </div>
+
+          <!-- AI re-validation pill — shown only when the user has unsaved
+               edits AND we still have the original image bytes in memory. -->
+          <button class="validate-edits-btn" id="btnValidateEdits" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <path d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"/>
+            </svg>
+            <span class="validate-label">Исправить…</span>
+          </button>
+
+          <!-- Hidden compatibility nodes — kept so legacy JS refs to
+               btnReportCloseBottom and resultsAttribution don't throw
+               on null. CSS sets display:none on .report-bottom-row and
+               .results-attribution; the role they used to play is now
+               filled by the bottom close-bar OUTSIDE the scroll. -->
+          <div class="report-bottom-row" hidden>
+            <button class="report-close report-close-bottom" id="btnReportCloseBottom" type="button" aria-label="Закрыть"></button>
+          </div>
+          <div class="results-attribution" id="resultsAttribution" hidden>
+            Данные о питании: USDA FoodData Central
+          </div>
+        </div>
+
+        <!-- Bottom close bar — review mode only. Full-width tap-to-close
+             mirror of the top bar. Hidden in fresh mode (where the swipe
+             arrows handle commitment instead of close). -->
+        <button class="report-close-bar report-close-bar-bottom" id="btnReportCloseBarBottom" type="button" aria-label="Закрыть">
+          <svg class="report-close-bar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="6" y1="18" x2="18" y2="6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Settings bottom sheet — kcal and water daily targets. Slides up
+         from the bottom using the same motion vocabulary as the add-sheet
+         and calendar-sheet. Macro percentage targets exist in the storage
+         shape (DEFAULT_SETTINGS) but their UI lands in Phase 7 alongside
+         the macro-balance visualization that consumes them. -->
+    <div class="settings-sheet" id="settingsSheet" aria-hidden="true">
+      <div class="settings-sheet-backdrop" id="settingsSheetBackdrop"></div>
+      <div class="settings-sheet-content glass" role="dialog" aria-modal="true" aria-label="Настройки">
+        <div class="settings-sheet-handle"></div>
+        <h3 class="settings-sheet-title">Цели на день</h3>
+        <!-- Settings now uses the same MetricScroller tiles as the
+             account tab (Параметры тела). Vertical drag / wheel / tap to
+             change. Replaces two horizontal scroll-snap WheelPickers
+             that no longer match the rest of the app's interaction
+             vocabulary. -->
+        <div class="settings-sheet-fields">
+          <div class="account-metrics settings-metrics">
+            <div class="account-metric" data-metric="kcal" data-min="500" data-max="8000" data-step="50" data-default="2000">
+              <div class="account-metric-label">Калории</div>
+              <div class="account-metric-stage">
+                <span class="account-metric-neighbor account-metric-prev"></span>
+                <span class="account-metric-value">—</span>
+                <span class="account-metric-neighbor account-metric-next"></span>
+              </div>
+              <div class="account-metric-unit">ккал</div>
+            </div>
+            <div class="account-metric" data-metric="water" data-min="500" data-max="6000" data-step="100" data-default="2000">
+              <div class="account-metric-label">Вода</div>
+              <div class="account-metric-stage">
+                <span class="account-metric-neighbor account-metric-prev"></span>
+                <span class="account-metric-value">—</span>
+                <span class="account-metric-neighbor account-metric-next"></span>
+              </div>
+              <div class="account-metric-unit">мл</div>
+            </div>
+          </div>
+        </div>
+        <p class="settings-sheet-error" id="settingsSheetError"></p>
+        <div class="settings-sheet-actions">
+          <button class="settings-sheet-cancel" id="btnSettingsCancel" type="button">Отмена</button>
+          <button class="settings-sheet-submit" id="btnSettingsSubmit" type="button">Сохранить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Account bottom sheet — redesigned profile editor. Same motion
+         vocabulary as settings + calendar sheets, but with a tighter
+         88vh cap so the sheet always reads as a floating tile (you
+         can see the dimmed app behind the top edge). Top bar has the
+         drag handle plus a logout icon button in the top-right. The
+         body pulls /api/auth/me on open; save/cancel only surface
+         after the user actually changes something. Wheel pickers
+         (custom horizontal scroll-snap) handle weight, height, and
+         birth year — far more touch-pleasant than number inputs. -->
+    <div class="account-sheet" id="accountSheet" aria-hidden="true">
+      <div class="account-sheet-backdrop" id="accountSheetBackdrop"></div>
+      <div class="account-sheet-content glass" role="dialog" aria-modal="true" aria-label="Аккаунт">
+
+        <!-- Drag handle — slim grip, centered. -->
+        <div class="account-grip">
+          <span class="account-grip-bar"></span>
+        </div>
+
+        <!-- Page title row: title + exit (logout) action button. -->
+        <div class="account-page-row">
+          <h3 class="account-page-title">Аккаунт</h3>
+          <button class="account-exit-btn" id="btnAccountLogout" type="button" aria-label="Выйти из аккаунта">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <path d="M16 17l5-5-5-5"/>
+              <path d="M21 12H9"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Scrollable inner content. Cards stack with breathing room. -->
+        <div class="account-scroll" id="accountScroll">
+
+          <!-- Identity card — avatar (with inline + / X badges) + handle + display name -->
+          <div class="account-card account-card-identity">
+            <div class="account-avatar-wrap">
+              <div class="account-avatar" id="accountAvatar">
+                <svg class="account-avatar-svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="16" cy="12" r="5"/>
+                  <path d="M5 28c0-5.5 5-9.5 11-9.5s11 4 11 9.5"/>
+                </svg>
+                <img class="account-avatar-img" id="accountAvatarImg" alt="" hidden>
+              </div>
+              <!-- X badge — visible only when a custom avatar is set; tap
+                   opens a confirmation tile asking keep-or-delete. -->
+              <button class="account-avatar-badge account-avatar-badge--remove" id="btnAccountAvatarRemove" type="button" hidden aria-label="Удалить фото">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
+                  <path d="M6 6l12 12M6 18L18 6"/>
+                </svg>
+              </button>
+              <!-- + badge — visible when no custom avatar; tap opens the
+                   file picker to add one. -->
+              <button class="account-avatar-badge account-avatar-badge--add" id="btnAccountAvatarUpload" type="button" aria-label="Добавить фото">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+              </button>
+            </div>
+            <div class="account-identity-text">
+              <div class="account-handle" id="accountUsernameLabel">@—</div>
+              <div class="account-display-name-display" id="accountIdentityName">—</div>
+            </div>
+            <input type="file" id="accountAvatarInput" accept="image/jpeg,image/png,image/webp" hidden>
+          </div>
+
+          <!-- Profile card — display name + 3-column metrics + gender -->
+          <div class="account-card">
+            <div class="account-card-label">Отображаемое имя</div>
+            <div class="account-name-input-wrap">
+              <input class="account-name-input" type="text" id="accountDisplayName" maxlength="64" autocomplete="off">
+            </div>
+
+            <div class="account-card-label account-card-label-spaced">Параметры тела</div>
+            <div class="account-metrics">
+              <div class="account-metric" data-metric="weight" data-min="30" data-max="200" data-step="1" data-default="70">
+                <div class="account-metric-label">Вес</div>
+                <div class="account-metric-stage">
+                  <span class="account-metric-neighbor account-metric-prev"></span>
+                  <span class="account-metric-value">—</span>
+                  <span class="account-metric-neighbor account-metric-next"></span>
+                </div>
+                <div class="account-metric-unit">кг</div>
+              </div>
+              <div class="account-metric" data-metric="height" data-min="120" data-max="220" data-step="1" data-default="170">
+                <div class="account-metric-label">Рост</div>
+                <div class="account-metric-stage">
+                  <span class="account-metric-neighbor account-metric-prev"></span>
+                  <span class="account-metric-value">—</span>
+                  <span class="account-metric-neighbor account-metric-next"></span>
+                </div>
+                <div class="account-metric-unit">см</div>
+              </div>
+              <div class="account-metric" data-metric="birth_year" data-min="1925" data-max="2025" data-step="1" data-default="1995">
+                <div class="account-metric-label">Год</div>
+                <div class="account-metric-stage">
+                  <span class="account-metric-neighbor account-metric-prev"></span>
+                  <span class="account-metric-value">—</span>
+                  <span class="account-metric-neighbor account-metric-next"></span>
+                </div>
+                <div class="account-metric-unit">р.</div>
+              </div>
+            </div>
+
+            <div class="account-card-label account-card-label-spaced">Пол</div>
+            <div class="account-gender" role="radiogroup" aria-label="Пол">
+              <button class="account-gender-seg" data-gender="m" type="button" role="radio" aria-checked="false">
+                <svg class="account-gender-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="10" cy="14" r="5"/>
+                  <path d="M19 5l-5.5 5.5M14 5h5v5"/>
+                </svg>
+                <span class="account-gender-label">Мужской</span>
+              </button>
+              <button class="account-gender-seg" data-gender="f" type="button" role="radio" aria-checked="false">
+                <svg class="account-gender-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="9" r="5"/>
+                  <path d="M12 14v8M9 19h6"/>
+                </svg>
+                <span class="account-gender-label">Женский</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Activity card — 5 icon tiles + caption with active level name -->
+          <div class="account-card">
+            <div class="account-card-label">Уровень активности</div>
+            <div class="account-activity" role="radiogroup" aria-label="Уровень активности">
+              <button class="account-activity-tile" data-activity="sedentary" type="button" role="radio" aria-label="Сидячий">
+                <span class="account-activity-icon-bg">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="4" r="2"/>
+                    <path d="M9 9h6v8h-2v5h-2v-5H9z"/>
+                  </svg>
+                </span>
+                <span class="account-activity-label-tiny">Сидячий</span>
+              </button>
+              <button class="account-activity-tile" data-activity="light" type="button" role="radio" aria-label="Лёгкий">
+                <span class="account-activity-icon-bg">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="13" cy="4" r="2"/>
+                    <path d="M10 22l2-7-3-3 2-5 4 3 3 1"/>
+                  </svg>
+                </span>
+                <span class="account-activity-label-tiny">Лёгкий</span>
+              </button>
+              <button class="account-activity-tile" data-activity="moderate" type="button" role="radio" aria-label="Умеренный">
+                <span class="account-activity-icon-bg">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="13" cy="4" r="2"/>
+                    <path d="M5 22l4-9 3 2 3-4 4 4M9 13l-2-2"/>
+                  </svg>
+                </span>
+                <span class="account-activity-label-tiny">Средний</span>
+              </button>
+              <button class="account-activity-tile" data-activity="active" type="button" role="radio" aria-label="Активный">
+                <span class="account-activity-icon-bg">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="13" cy="4" r="2"/>
+                    <path d="M4 17l5-5 4 3 5-7M19 8l3 1"/>
+                  </svg>
+                </span>
+                <span class="account-activity-label-tiny">Высокий</span>
+              </button>
+              <button class="account-activity-tile" data-activity="very_active" type="button" role="radio" aria-label="Очень активный">
+                <span class="account-activity-icon-bg">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 12h2M19 12h2M7 7v10M17 7v10M7 12h10"/>
+                  </svg>
+                </span>
+                <span class="account-activity-label-tiny">Очень</span>
+              </button>
+            </div>
+            <span id="accountActivityCurrent" hidden></span>
+          </div>
+
+          <!-- Advanced card — disclosure rows. Theme picker now lives
+               INSIDE this card as a collapsible drawer, demoting it
+               from "always visible centerpiece" to "tucked-away
+               personalization" per the mockup. -->
+          <div class="account-card" id="accountAdvanced">
+            <div class="account-card-label">Дополнительно</div>
+            <div class="account-advanced">
+
+              <!-- Theme drawer disclosure -->
+              <button class="account-disclosure" id="btnAccountThemeToggle" type="button" aria-expanded="false">
+                <div class="account-disclosure-left">
+                  <div class="account-disclosure-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                      <circle cx="12" cy="12" r="9"/>
+                      <path d="M3 12c4 0 6-3 6-3s2 5 6 5 6-2 6-2"/>
+                    </svg>
+                  </div>
+                  <div class="account-disclosure-text">
+                    <div class="account-disclosure-title">Тема оформления</div>
+                    <div class="account-disclosure-sub" id="accountThemeLabel">Лён</div>
+                  </div>
+                </div>
+                <svg class="account-disclosure-chev" id="accountThemeChev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <div class="account-theme-drawer" id="accountThemeDrawer">
+                <div class="account-theme-options" id="accountThemeRow" role="radiogroup" aria-label="Тема оформления">
+                  <button class="account-theme-opt" data-theme-name="warm" type="button" role="radio" aria-checked="false" aria-label="Очаг">
+                    <div class="account-theme-swatch-wrap"><div class="account-theme-swatch account-theme-swatch--warm"></div></div>
+                    <div class="account-theme-name">Очаг</div>
+                  </button>
+                  <button class="account-theme-opt" data-theme-name="verdant" type="button" role="radio" aria-checked="false" aria-label="Свеча">
+                    <div class="account-theme-swatch-wrap"><div class="account-theme-swatch account-theme-swatch--verdant"></div></div>
+                    <div class="account-theme-name">Свеча</div>
+                  </button>
+                  <button class="account-theme-opt" data-theme-name="light" type="button" role="radio" aria-checked="false" aria-label="Лён">
+                    <div class="account-theme-swatch-wrap"><div class="account-theme-swatch account-theme-swatch--light"></div></div>
+                    <div class="account-theme-name">Лён</div>
+                  </button>
+                  <button class="account-theme-opt" data-theme-name="dark" type="button" role="radio" aria-checked="false" aria-label="Уголь">
+                    <div class="account-theme-swatch-wrap"><div class="account-theme-swatch account-theme-swatch--dark"></div></div>
+                    <div class="account-theme-name">Уголь</div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Change password disclosure (form below toggles open inline) -->
+              <button class="account-disclosure" id="btnAccountChangePasswordRow" type="button" aria-expanded="false">
+                <div class="account-disclosure-left">
+                  <div class="account-disclosure-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <div class="account-disclosure-text">
+                    <div class="account-disclosure-title">Сменить пароль</div>
+                  </div>
+                </div>
+                <svg class="account-disclosure-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+              <!-- Outer wrapper animates via grid-template-rows; inner
+                   carries the flex-column layout, padding, and content. -->
+              <div class="account-advanced-form" id="accountChangePasswordForm">
+                <div class="account-advanced-form-inner">
+                  <div class="account-pw-field">
+                    <input type="password" id="accountCurrentPassword" autocomplete="current-password" placeholder="Текущий пароль">
+                  </div>
+                  <div class="account-pw-field">
+                    <input type="password" id="accountNewPassword" autocomplete="new-password" minlength="4" maxlength="128" placeholder="Новый пароль (мин 4)">
+                  </div>
+                  <button class="account-pw-submit" id="btnAccountChangePassword" type="button">Сохранить</button>
+                </div>
+              </div>
+
+              <!-- Delete account (danger) -->
+              <button class="account-disclosure account-disclosure-danger" id="btnAccountDelete" type="button">
+                <div class="account-disclosure-left">
+                  <div class="account-disclosure-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    </svg>
+                  </div>
+                  <div class="account-disclosure-text">
+                    <div class="account-disclosure-title">Удалить аккаунт</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div class="account-bottom-pad"></div>
+        </div>
+
+        <p class="account-sheet-error" id="accountSheetError"></p>
+
+        <!-- Save/Cancel strip — only visible while there are unsaved
+             changes (driven by .has-changes on .account-sheet-content).
+             Compact inline layout: a small mono-status caption on the
+             left, a ghost-link Cancel + a primary Save pill on the
+             right. Replaces the previous heavy full-width button pair. -->
+        <div class="account-sheet-actions" id="accountActions">
+          <div class="account-sheet-actions-buttons">
+            <button class="account-sheet-cancel" id="btnAccountCancel" type="button">Отмена</button>
+            <button class="account-sheet-submit" id="btnAccountSubmit" type="button">Сохранить</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete-account modal — destructive action, designed to feel
+         deliberate. Centered card, not a sheet, so it reads as a
+         confirmation rather than a continuation. Has: title,
+         description, optional reason textarea (we log it on the
+         server for product feedback), password input for confirm,
+         cancel + delete buttons. Native confirm/prompt is gone. -->
+    <div class="delete-modal" id="deleteModal" aria-hidden="true">
+      <div class="delete-modal-backdrop" id="deleteModalBackdrop"></div>
+      <div class="delete-modal-card glass glass--strong" role="dialog" aria-modal="true" aria-label="Удалить аккаунт">
+        <div class="delete-modal-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+            <path d="M12 9v4"/>
+            <path d="M12 17h.01"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+        </div>
+        <h3 class="delete-modal-title">Удалить аккаунт?</h3>
+        <p class="delete-modal-desc">Все данные (сканы, настройки, фото профиля) будут стерты с сервера. Действие необратимо.</p>
+
+        <label class="delete-modal-label" for="deleteReason">Причина удаления (необязательно)</label>
+        <textarea class="delete-modal-textarea" id="deleteReason" rows="2" maxlength="500" placeholder="Расскажите, что не подошло"></textarea>
+
+        <label class="delete-modal-label" for="deletePassword">Подтвердите пароль</label>
+        <input class="delete-modal-input" type="password" id="deletePassword" autocomplete="current-password">
+
+        <p class="delete-modal-error" id="deleteModalError"></p>
+
+        <div class="delete-modal-actions">
+          <button class="delete-modal-cancel" id="btnDeleteModalCancel" type="button">Отмена</button>
+          <button class="delete-modal-confirm" id="btnDeleteModalConfirm" type="button">Удалить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generic confirm modal — reusable glass dialog driven by JS
+         (showConfirm/showInfo helpers). Replaces native confirm()
+         everywhere in the app for consistency with the design system. -->
+    <div class="confirm-modal" id="confirmModal" aria-hidden="true">
+      <div class="confirm-modal-backdrop" id="confirmModalBackdrop"></div>
+      <div class="confirm-modal-card glass glass--strong" role="alertdialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+        <div class="confirm-modal-icon" id="confirmModalIcon" aria-hidden="true"></div>
+        <h3 class="confirm-modal-title" id="confirmModalTitle"></h3>
+        <p class="confirm-modal-body" id="confirmModalBody"></p>
+        <div class="confirm-modal-actions" id="confirmModalActions">
+          <button class="confirm-modal-cancel"  id="btnConfirmModalCancel"  type="button">Отмена</button>
+          <button class="confirm-modal-confirm" id="btnConfirmModalConfirm" type="button">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add-ingredient bottom sheet -->
+    <div class="add-sheet" id="addSheet" aria-hidden="true">
+      <div class="add-sheet-backdrop" id="addSheetBackdrop"></div>
+      <div class="add-sheet-content glass" role="dialog" aria-modal="true" aria-label="Добавить ингредиент">
+        <div class="add-sheet-handle"></div>
+        <h3 class="add-sheet-title">Добавить ингредиент</h3>
+        <div class="add-sheet-fields">
+          <div class="add-sheet-field">
+            <label for="addName">Название</label>
+            <input type="text" id="addName" placeholder="Например, хлеб" autocomplete="off">
+          </div>
+          <div class="add-sheet-field">
+            <label for="addGrams">Граммы</label>
+            <input type="number" id="addGrams" min="1" max="9999" inputmode="numeric" placeholder="100">
+          </div>
+        </div>
+        <p class="add-sheet-error" id="addSheetError"></p>
+        <div class="add-sheet-actions">
+          <button class="add-sheet-cancel" id="btnAddCancel">Отмена</button>
+          <button class="add-sheet-submit" id="btnAddSubmit">Добавить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar sheet — month grid with quality-color cells. Slides up
+         from bottom (same motion language as the add-ingredient sheet).
+         Each cell is tinted by its day-quality verdict (green/yellow/
+         orange) when known, with a small dot marking days that have
+         consumed entries. -->
+    <div class="calendar-sheet" id="calendarSheet" aria-hidden="true">
+      <div class="calendar-backdrop" id="calendarBackdrop"></div>
+      <div class="calendar-content glass" role="dialog" aria-modal="true" aria-label="Календарь">
+        <div class="calendar-handle"></div>
+        <div class="calendar-head">
+          <button class="calendar-nav" id="btnCalPrev" aria-label="Предыдущий месяц" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <span class="calendar-title" id="calendarTitle">—</span>
+          <button class="calendar-nav" id="btnCalNext" aria-label="Следующий месяц" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="calendar-day-detail" id="calendarDayDetail" hidden>
+          <span class="day-detail-name" id="calendarDayName">—</span>
+          <span class="day-detail-stats" id="calendarDayStats">—</span>
+          <p class="day-detail-tip" id="calendarDayTip"></p>
+        </div>
+        <div class="calendar-legend">
+          <span class="legend-item"><span class="legend-glyph good" aria-hidden="true">✓</span>хорошо</span>
+          <span class="legend-item"><span class="legend-glyph ok"   aria-hidden="true">−</span>норма</span>
+          <span class="legend-item"><span class="legend-glyph bad"  aria-hidden="true">!</span>стоит улучшить</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Bottom Nav -->
-    <nav class="bottom-nav">
+    <nav class="bottom-nav glass glass--subtle">
+      <!-- Ink slide indicator — a 2px gold bar pinned to the top of the
+           active nav button. JS sets its left/width to match the active
+           button's bounding box; CSS handles the slide via transform. -->
+      <span class="nav-ink" id="navInk" aria-hidden="true"></span>
       <button class="nav-item active" id="navScanner" data-view="scanner">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="22" height="22">
           <path d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"/>
@@ -255,11 +967,18 @@
 
   </div><!-- /app -->
 
-  <!-- Hidden file inputs -->
-  <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
-  <input type="file" id="galleryInput" accept="image/jpeg,image/png,image/webp" hidden>
+  <!-- File inputs — kept in layout (1×1 offscreen) instead of `hidden`
+       because iOS Safari's input.click() is unreliable on display:none
+       inputs. The visually-hidden pattern keeps them accessible to AT
+       and reliably programmatic-clickable. -->
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" class="visually-hidden">
+  <input type="file" id="galleryInput" accept="image/jpeg,image/png,image/webp" class="visually-hidden">
 
-  <script src="/static/js/spring.js"></script>
-  <script src="/static/js/app.js"></script>
+  <!-- Cache-bust: bump the ?v= when shipping JS changes so iOS Safari and
+       aggressive proxy caches always fetch fresh files. -->
+  <script src="/static/js/spring.js?v=20260502-account-redesign-7"></script>
+  <script src="/static/js/storage.js?v=20260502-account-redesign-7"></script>
+  <script src="/static/js/api.js?v=20260502-account-redesign-7"></script>
+  <script src="/static/js/app.js?v=20260502-pr3-cleanup"></script>
 </body>
 </html>

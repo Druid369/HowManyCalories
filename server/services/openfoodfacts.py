@@ -1,12 +1,9 @@
-import time
 from dataclasses import dataclass
 
 import httpx
 
-# In-memory cache: search_term → (timestamp, NutrientsPer100g)
-_cache: dict[str, tuple[float, "OFFNutrients"]] = {}
-_CACHE_TTL = 3600
-_CACHE_MAX = 200
+from server.services._cache import TTLCache
+from server.services._http import get_client
 
 OFF_SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl"
 OFF_USER_AGENT = "HowManyCalories/1.0 (food calorie estimation app)"
@@ -14,12 +11,17 @@ OFF_USER_AGENT = "HowManyCalories/1.0 (food calorie estimation app)"
 
 @dataclass
 class OFFNutrients:
-    calories: float
-    protein_g: float
-    fat_g: float
-    carbs_g: float
+    calories:    float
+    protein_g:   float
+    fat_g:       float
+    carbs_g:     float
     description: str
-    barcode: str
+    barcode:     str
+    sugar_g:     float = 0.0
+    fiber_g:     float = 0.0
+
+
+_cache: TTLCache[OFFNutrients] = TTLCache(ttl_seconds=3600, max_size=200)
 
 
 def _extract_nutrients(product: dict) -> OFFNutrients | None:
@@ -32,8 +34,10 @@ def _extract_nutrients(product: dict) -> OFFNutrients | None:
         cal = round(cal / 4.184)
 
     protein = nutriments.get("proteins_100g", 0) or 0
-    fat = nutriments.get("fat_100g", 0) or 0
-    carbs = nutriments.get("carbohydrates_100g", 0) or 0
+    fat     = nutriments.get("fat_100g", 0) or 0
+    carbs   = nutriments.get("carbohydrates_100g", 0) or 0
+    sugar   = nutriments.get("sugars_100g", 0) or 0   # OFF uses "sugars_100g" (plural)
+    fiber   = nutriments.get("fiber_100g", 0) or 0    # OFF uses "fiber_100g" (no plural)
 
     if cal == 0 and protein == 0 and fat == 0:
         return None
@@ -53,6 +57,8 @@ def _extract_nutrients(product: dict) -> OFFNutrients | None:
         carbs_g=float(carbs),
         description=description,
         barcode=product.get("code", ""),
+        sugar_g=float(sugar),
+        fiber_g=float(fiber),
     )
 
 
@@ -86,50 +92,45 @@ def _score_match(query: str, product: dict) -> float:
 
 async def search_food(query: str) -> OFFNutrients | None:
     """Search OpenFoodFacts for a food and return per-100g nutrients."""
-    cache_key = f"off_{query.lower().strip()}"
-    if cache_key in _cache:
-        ts, result = _cache[cache_key]
-        if time.time() - ts < _CACHE_TTL:
-            return result
-        del _cache[cache_key]
+    cache_key = query.lower().strip()
+    cached = _cache.get(cache_key)
+    if cached is not None:
+        return cached
 
     try:
-        async with httpx.AsyncClient(timeout=6.0) as client:
-            resp = await client.get(
-                OFF_SEARCH_URL,
-                params={
-                    "search_terms": query,
-                    "search_simple": 1,
-                    "action": "process",
-                    "json": 1,
-                    "page_size": 10,
-                    "fields": "code,product_name,product_name_ru,brands,nutriments",
-                },
-                headers={"User-Agent": OFF_USER_AGENT},
-            )
+        resp = await get_client().get(
+            OFF_SEARCH_URL,
+            params={
+                "search_terms": query,
+                "search_simple": 1,
+                "action": "process",
+                "json": 1,
+                "page_size": 10,
+                "fields": "code,product_name,product_name_ru,brands,nutriments",
+            },
+            headers={"User-Agent": OFF_USER_AGENT},
+            timeout=6.0,
+        )
 
-            if resp.status_code != 200:
-                return None
-
-            products = resp.json().get("products", [])
-            if not products:
-                return None
-
-            scored = [(p, _score_match(query, p)) for p in products]
-            scored.sort(key=lambda x: x[1], reverse=True)
-
-            for product, score in scored:
-                if score < 0.3:
-                    break
-                result = _extract_nutrients(product)
-                if result:
-                    if len(_cache) >= _CACHE_MAX:
-                        oldest = min(_cache, key=lambda k: _cache[k][0])
-                        del _cache[oldest]
-                    _cache[cache_key] = (time.time(), result)
-                    return result
-
+        if resp.status_code != 200:
             return None
+
+        products = resp.json().get("products", [])
+        if not products:
+            return None
+
+        scored = [(p, _score_match(query, p)) for p in products]
+        scored.sort(key=lambda x: x[1], reverse=True)
+
+        for product, score in scored:
+            if score < 0.3:
+                break
+            result = _extract_nutrients(product)
+            if result:
+                _cache.set(cache_key, result)
+                return result
+
+        return None
 
     except (httpx.TimeoutException, httpx.HTTPError):
         return None

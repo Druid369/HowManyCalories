@@ -1,0 +1,401 @@
+/* ════════════════════════════════════════════════
+   FORK — Login screen styles
+   Standalone (no shared CSS file). Re-declares the
+   tokens we need so this page can render fast on
+   first paint without pulling app.css.
+═══════════════════════════════════════════════════ */
+
+:root {
+  --bg:           #1A1714;
+  --bg2:          #242019;
+  --bg-elev:      #2A2520;
+  --border:       rgba(198,183,155,0.10);
+  --border-hi:    rgba(198,183,155,0.20);
+  --glass:        rgba(198,183,155,0.05);
+  --glass-hi:     rgba(198,183,155,0.10);
+
+  --green:        #C9943A;
+  --green-br:     #DEB05A;
+  --green-glow:   rgba(201,148,58,0.28);
+  --green-dim:    rgba(201,148,58,0.12);
+
+  --t1:           #F1E9D2;
+  --t2:           #A89A86;
+  --t3:           #6B5F50;
+  --t4:           #4A4035;
+
+  --error:        #D8613C;
+
+  --r-md:         12px;
+  --r-lg:         18px;
+  --r-xl:         24px;
+  --r-max:        999px;
+
+  --fdisp:        'Syne', system-ui, sans-serif;
+  --fmono:        'JetBrains Mono', ui-monospace, monospace;
+  --fbody:        'Figtree', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--t1);
+  font-family: var(--fbody);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+}
+
+body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Background layers ──────────────────────────────────────────────
+   Three stacked layers below the content shell:
+   - base: solid warm-black so first paint is always correct
+   - glow: a slow off-center radial bloom for ambient warmth
+   - grain: tiny film-noise texture for tactile depth
+*/
+.auth-bg-base {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at 30% 30%, #221C16 0%, var(--bg) 65%);
+  z-index: 0;
+}
+.auth-bg-glow {
+  position: fixed; inset: -10%;
+  background: radial-gradient(circle at 70% 30%, rgba(201,148,58,.10) 0%, transparent 45%);
+  z-index: 1;
+  pointer-events: none;
+  animation: glow-drift 26s ease-in-out infinite alternate;
+}
+@keyframes glow-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(8%, -6%) scale(1.1); }
+}
+.auth-bg-grain {
+  position: fixed; inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg,   rgba(241,233,210,.014) 0px, rgba(241,233,210,.014) 1px, transparent 1px, transparent 3px),
+    repeating-linear-gradient(90deg,  rgba(241,233,210,.014) 0px, rgba(241,233,210,.014) 1px, transparent 1px, transparent 3px);
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ── Shell ──────────────────────────────────────────────────────── */
+.auth-shell {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: max(28px, env(safe-area-inset-top, 0px) + 18px) 22px max(20px, env(safe-area-inset-bottom, 0px) + 14px);
+  min-height: 100%;
+}
+
+/* ── Header / wordmark ──────────────────────────────────────────── */
+.auth-header {
+  display: flex; align-items: center;
+  width: 100%;
+  max-width: 480px;
+}
+/* Logotype — same recipe as app.css. Custom-drawn lowercase 'fork'
+   wordmark in monoline geometric paths. Color inherits via
+   currentColor so the warm cream applies automatically. */
+.logo { display: flex; align-items: center; }
+.logo-dot,
+.logo-name { display: none; }
+.logo-mark {
+  height: 30px;
+  width: auto;
+  color: var(--t1);
+  flex-shrink: 0;
+  transition: color 220ms ease;
+}
+.logo-mark:hover { color: var(--green-br); }
+
+/* ── Auth tile ──────────────────────────────────────────────────── */
+.auth-tile {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  padding: 28px 24px 24px;
+  border-radius: var(--r-xl);
+  /* Liquid glass tile — same recipe family as the in-app overlays so
+     this is the user's first taste of the design system. The blur
+     softens the warm-bg glow behind the tile, the tint adds a faint
+     warm sheen, and the multi-stop inset shadow gives the rim depth.
+     The ::before light-pool curve at top-left is what distinguishes
+     this from flat glassmorphism. */
+  background:
+    linear-gradient(135deg,
+      rgba(198,183,155, .14) 0%,
+      rgba(198,183,155, .07) 50%,
+      rgba(198,183,155, .10) 100%),
+    rgba(26,23,20, .55);
+  -webkit-backdrop-filter: blur(24px) saturate(170%);
+          backdrop-filter: blur(24px) saturate(170%);
+  border: 1px solid rgba(198,183,155, .14);
+  box-shadow:
+    /* top highlight */
+    inset 0 1px 0 0 rgba(198,183,155, .26),
+    /* sub-pixel inner border */
+    inset 0 0 0 1px rgba(198,183,155, .08),
+    /* bottom edge depth */
+    inset 0 -1px 0 0 rgba(0,0,0, .35),
+    /* lifted contact + ambient float */
+    0 1px 2px rgba(0,0,0, .25),
+    0 24px 56px rgba(0,0,0, .55),
+    0 8px 22px  rgba(0,0,0, .35);
+  isolation: isolate;
+  /* Entry animation — subtle rise + fade on first paint so the tile
+     feels assembled, not pasted. */
+  animation: auth-tile-in 540ms cubic-bezier(.34, 1.56, .64, 1) both;
+}
+.auth-tile::before {
+  /* Light-pool curve — top-left radial sheen. Matches the .glass
+     recipe in app.css. z-index -1 inside isolation: isolate so it
+     paints below content without overriding child positioning. */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%,
+      rgba(198,183,155, .14) 0%,
+      rgba(198,183,155, .04) 40%,
+      transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+@keyframes auth-tile-in {
+  0%   { opacity: 0; transform: translate3d(0, 12px, 0) scale(.97); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0)    scale(1);   }
+}
+/* Outro — runs when JS adds .leaving (after successful auth). The
+   tile fades + scales up gently while a brighter bg glow swells.
+   The page navigation fires after this animation finishes. */
+.auth-tile.leaving {
+  animation: auth-tile-out 520ms cubic-bezier(.4, 0, .2, 1) forwards;
+}
+@keyframes auth-tile-out {
+  0%   { opacity: 1; transform: scale(1)    translate3d(0, 0,    0); filter: blur(0); }
+  60%  { opacity: 1; transform: scale(1.04) translate3d(0, -6px, 0); filter: blur(0); }
+  100% { opacity: 0; transform: scale(1.10) translate3d(0, -10px, 0); filter: blur(6px); }
+}
+.auth-bg-glow.flare {
+  /* Bright bloom during the outro — feels like the brand "lighting up"
+     before handing off to the dashboard. */
+  animation: auth-glow-flare 520ms cubic-bezier(.4, 0, .2, 1) forwards;
+}
+@keyframes auth-glow-flare {
+  0%   { opacity: 1;   transform: scale(1)    translate(0, 0); }
+  60%  { opacity: 1.6; transform: scale(1.30) translate(0, 0); }
+  100% { opacity: 0;   transform: scale(1.55) translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-tile { animation: none; }
+  .auth-tile.leaving { animation: none; opacity: 0; }
+  .auth-bg-glow.flare { animation: none; }
+}
+.auth-tile[data-mode="register"] .auth-tab-indicator {
+  transform: translateX(100%);
+}
+
+.auth-title {
+  font-family: var(--fdisp);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -.5px;
+  color: var(--t1);
+  margin-bottom: 6px;
+}
+.auth-subtitle {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--t2);
+  line-height: 1.45;
+  margin-bottom: 22px;
+}
+
+/* ── Tabs ───────────────────────────────────────────────────────── */
+.auth-tabs {
+  position: relative;
+  display: flex;
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: var(--r-max);
+  padding: 4px;
+  margin-bottom: 22px;
+}
+.auth-tab {
+  flex: 1;
+  position: relative;
+  z-index: 2;
+  background: transparent;
+  border: none;
+  padding: 9px 0;
+  color: var(--t2);
+  font-family: var(--fbody);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  cursor: pointer;
+  border-radius: var(--r-max);
+  transition: color 220ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.auth-tab[aria-selected="true"] { color: var(--t1); }
+.auth-tab-indicator {
+  position: absolute;
+  top: 4px; left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  background: linear-gradient(135deg, rgba(201,148,58,.18), rgba(201,148,58,.06));
+  border: 1px solid rgba(201,148,58,.25);
+  border-radius: var(--r-max);
+  z-index: 1;
+  transition: transform 280ms cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* ── Form fields ────────────────────────────────────────────────── */
+.auth-form {
+  display: flex; flex-direction: column;
+  gap: 14px;
+}
+.auth-field {
+  display: flex; flex-direction: column;
+  gap: 6px;
+}
+.auth-field label {
+  font-family: var(--fmono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.auth-field input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 13px 14px;
+  font-family: var(--fbody);
+  font-size: 15px;
+  color: var(--t1);
+  transition: border-color 200ms ease, background 200ms ease;
+}
+.auth-field input::placeholder {
+  color: var(--t4);
+  font-weight: 400;
+}
+.auth-field input:hover { border-color: var(--border-hi); }
+.auth-field input:focus {
+  outline: none;
+  border-color: rgba(201,148,58,.45);
+  background: rgba(26,23,20,.7);
+  box-shadow: 0 0 0 3px rgba(201,148,58,.10);
+}
+
+/* ── Error line ─────────────────────────────────────────────────── */
+.auth-error {
+  min-height: 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--error);
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.auth-error.visible { opacity: 1; }
+
+/* ── Submit button ──────────────────────────────────────────────── */
+.auth-submit {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-br) 100%);
+  border: none;
+  border-radius: var(--r-md);
+  padding: 14px 18px;
+  font-family: var(--fbody);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  color: #1A1410;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: transform 150ms ease, box-shadow 200ms ease, opacity 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 12px rgba(201,148,58,.25);
+  overflow: hidden;
+}
+.auth-submit:hover  { box-shadow: 0 4px 18px rgba(201,148,58,.35); }
+.auth-submit:active { transform: scale(.98); }
+.auth-submit:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none;
+}
+.auth-submit-spinner {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 18px; height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid rgba(26,20,16,.25);
+  border-top-color: #1A1410;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+.auth-submit.loading .auth-submit-label   { opacity: 0; }
+.auth-submit.loading .auth-submit-spinner {
+  opacity: 1;
+  animation: spin .85s linear infinite;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+/* ── Toggle hint ────────────────────────────────────────────────── */
+.auth-toggle-hint {
+  text-align: center;
+  font-size: 13px;
+  color: var(--t2);
+  margin-top: 18px;
+}
+.auth-toggle-hint a {
+  color: var(--green-br);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px solid transparent;
+  transition: border-color 200ms ease;
+}
+.auth-toggle-hint a:hover { border-bottom-color: var(--green-br); }
+
+/* ── Tagline ────────────────────────────────────────────────────── */
+.auth-tagline {
+  font-family: var(--fmono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--t3);
+  text-align: center;
+  margin-top: 16px;
+  opacity: .7;
+}
+
+/* ── Compact viewport ───────────────────────────────────────────── */
+@media (max-height: 640px) {
+  .auth-shell { padding-top: 18px; padding-bottom: 12px; }
+  .auth-tile { padding: 22px 22px 20px; }
+  .auth-title { font-size: 22px; }
+  .auth-subtitle { margin-bottom: 16px; }
+  .auth-tabs { margin-bottom: 16px; }
+  .auth-form { gap: 12px; }
+  .auth-tagline { display: none; }
+}

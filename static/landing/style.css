@@ -7,6 +7,14 @@
 /* ── Reset & Variables ────────────────────── */
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
+/* ── Scrollbar — minimal brutalist ────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(201,148,58,.18); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201,148,58,.35); }
+::-webkit-scrollbar-corner { background: transparent; }
+* { scrollbar-width: thin; scrollbar-color: rgba(201,148,58,.18) transparent; }
+
 :root {
   --bg:       #0A0A08;
   --bg2:      #111110;

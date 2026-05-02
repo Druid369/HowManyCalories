@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "start": "python start.py",
+    "ui": "start http://localhost:8000/admin && uvicorn server.main:app --reload --host 0.0.0.0 --port 8000",
     "kill": "powershell -Command \"Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }; Write-Host 'Port 8000 cleared'\"",
-    "host": "ngrok http 8000",
-    "render-intro": "cd remotion && npm run render"
+    "host": "ngrok http 8000"
   }
 }

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1A1714">
+  <title>FORK — Вход</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/login/style.css?v=20260501-logotype-1">
+</head>
+<body>
+
+  <!-- Atmospheric background layers — same warm-dark palette as the app,
+       so the login feels like a continuation of the brand, not a generic
+       sign-in screen pasted on top. -->
+  <div class="auth-bg-base"></div>
+  <div class="auth-bg-glow"></div>
+  <div class="auth-bg-grain"></div>
+
+  <main class="auth-shell">
+
+    <!-- Wordmark — same gradient + dot as the in-app header so users
+         recognize the brand before they even read the form. -->
+    <header class="auth-header">
+      <div class="logo">
+        <svg class="logo-mark" viewBox="0 0 78 32" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fork">
+          <path d="M 17 5 Q 12 5 12 8.5 L 12 28"/>
+          <path d="M 5 14 L 18 14"/>
+          <circle cx="30" cy="19" r="9"/>
+          <path d="M 44 28 L 44 12 Q 44 9.5 47 9.5 Q 52 9.5 54 13"/>
+          <path d="M 60 5 L 60 28"/>
+          <path d="M 60 20 L 72 12"/>
+          <path d="M 60 20 L 72 28"/>
+        </svg>
+        <span class="logo-dot"></span>
+        <span class="logo-name">FORK</span>
+      </div>
+    </header>
+
+    <!-- Centered tile — bounded width, rounded, layered shadow. Mirrors
+         the report overlay's "floating card above a darkened canvas"
+         silhouette so the visual language is consistent across the app. -->
+    <section class="auth-tile" id="authTile">
+
+      <h1 class="auth-title" id="authTitle">Войти</h1>
+      <p class="auth-subtitle" id="authSubtitle">Введите имя и пароль, чтобы открыть свой аккаунт</p>
+
+      <!-- Tab selector — Login / Register. Visual: an underline indicator
+           that slides between the two slots when the active tab changes
+           (CSS-driven via [data-mode] on the tile). -->
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab" data-mode="login"    type="button" role="tab" aria-selected="true">Войти</button>
+        <button class="auth-tab" data-mode="register" type="button" role="tab" aria-selected="false">Создать</button>
+        <span class="auth-tab-indicator" aria-hidden="true"></span>
+      </div>
+
+      <form class="auth-form" id="authForm" autocomplete="on">
+        <div class="auth-field">
+          <label for="username">Имя пользователя</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            required
+            minlength="1"
+            maxlength="32"
+            pattern="[A-Za-z0-9]+"
+            autocomplete="username"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+            placeholder="буквы и цифры"
+          >
+        </div>
+        <div class="auth-field">
+          <label for="password">Пароль</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            minlength="4"
+            maxlength="128"
+            autocomplete="current-password"
+            placeholder="минимум 4 символа"
+          >
+        </div>
+
+        <p class="auth-error" id="authError" aria-live="polite"></p>
+
+        <button class="auth-submit" id="authSubmit" type="submit">
+          <span class="auth-submit-label" id="authSubmitLabel">Войти</span>
+          <span class="auth-submit-spinner" aria-hidden="true"></span>
+        </button>
+      </form>
+
+      <p class="auth-toggle-hint" id="authToggleHint">
+        Первый раз? <a href="#" data-mode="register">Создать аккаунт</a>
+      </p>
+
+    </section>
+
+    <footer class="auth-tagline">
+      Сканируй еду · Считай калории · Никаких лишних вопросов
+    </footer>
+
+  </main>
+
+  <script src="/static/login/script.js?v=20260501-glass-1"></script>
+</body>
+</html>

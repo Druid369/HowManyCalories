@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0A0A08">
+  <title>СЪЕМ — Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@600;700;800&family=Figtree:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/admin/style.css">
+</head>
+<body>
+
+  <!-- ═══ AUTH GATE (legacy — kept as a fatal-error surface only) ═══
+       The /admin route is gated server-side now; only role='admin'
+       sessions ever reach this HTML. The script's bootstrap()
+       still re-checks /api/auth/me to handle session-expired-while-
+       open scenarios. This element is hidden by default and only
+       surfaces if the bootstrap hits an unrecoverable network error.
+       The token input is kept in the DOM but disabled — its previous
+       handlers are gone, so it's purely a layout placeholder. -->
+  <div class="auth-gate" id="authGate" style="display:none">
+    <div class="auth-box">
+      <div class="auth-logo"><span class="dot"></span> СЪЕМ</div>
+      <h2>ADMIN ACCESS</h2>
+      <p class="auth-error" id="authError"></p>
+    </div>
+  </div>
+
+  <!-- ═══ DASHBOARD ═══ -->
+  <div class="dash" id="dashboard" style="display:none">
+
+    <!-- NAV -->
+    <nav class="dash-nav">
+      <div class="dash-nav-left">
+        <span class="dot"></span>
+        <span class="dash-logo">СЪЕМ</span>
+        <span class="dash-badge">ADMIN</span>
+      </div>
+      <div class="dash-nav-right">
+        <span class="dash-status" id="statusDot">● CONNECTED</span>
+        <span class="dash-time" id="clockDisplay">--:--:--</span>
+      </div>
+    </nav>
+
+    <!-- TABS — switch between the analytics overview and the per-user
+         management view. Both panels live below; a CSS class on the
+         dashboard toggles which one is visible. -->
+    <nav class="dash-tabs" role="tablist">
+      <button class="dash-tab active" data-tab="overview" role="tab" aria-selected="true">OVERVIEW</button>
+      <button class="dash-tab"        data-tab="users"    role="tab" aria-selected="false">USERS</button>
+    </nav>
+
+    <div class="tab-panel active" id="tab-overview">
+
+    <!-- KPI STRIP -->
+    <section class="kpi-strip">
+      <div class="kpi">
+        <span class="kpi-label">TODAY</span>
+        <span class="kpi-num" id="kpiToday">--</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">THIS WEEK</span>
+        <span class="kpi-num" id="kpiWeek">--</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">THIS MONTH</span>
+        <span class="kpi-num" id="kpiMonth">--</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">ALL TIME</span>
+        <span class="kpi-num" id="kpiTotal">--</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">AVG RESPONSE</span>
+        <span class="kpi-num" id="kpiAvgMs">--</span>
+      </div>
+      <div class="kpi">
+        <span class="kpi-label">OPUS RATE</span>
+        <span class="kpi-num" id="kpiOpus">--</span>
+      </div>
+    </section>
+
+    <!-- CHARTS ROW -->
+    <section class="charts-row">
+      <div class="chart-card">
+        <div class="chart-head">
+          <h3>REQUEST VOLUME</h3>
+          <div class="chart-toggle">
+            <button class="chart-btn active" data-period="day">24H</button>
+            <button class="chart-btn" data-period="week">7D</button>
+            <button class="chart-btn" data-period="month">30D</button>
+          </div>
+        </div>
+        <canvas id="timelineChart" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">
+          <h3>PIPELINE PERFORMANCE</h3>
+        </div>
+        <div class="perf-grid">
+          <div class="perf-bar">
+            <span class="perf-label">STAGE 1 — SONNET</span>
+            <div class="perf-track"><div class="perf-fill perf-s1" id="perfS1"></div></div>
+            <span class="perf-val" id="perfS1Val">--</span>
+          </div>
+          <div class="perf-bar">
+            <span class="perf-label">STAGE 2 — DATABASE</span>
+            <div class="perf-track"><div class="perf-fill perf-s2" id="perfS2"></div></div>
+            <span class="perf-val" id="perfS2Val">--</span>
+          </div>
+          <div class="perf-bar">
+            <span class="perf-label">STAGE 3 — OPUS</span>
+            <div class="perf-track"><div class="perf-fill perf-s3" id="perfS3"></div></div>
+            <span class="perf-val" id="perfS3Val">--</span>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-cell">
+            <span class="stat-val" id="statTokens">--</span>
+            <span class="stat-key">AVG TOKENS</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-val" id="statTotalTokens">--</span>
+            <span class="stat-key">TOTAL TOKENS</span>
+          </div>
+          <div class="stat-cell">
+            <span class="stat-val" id="statCalWarn">--</span>
+            <span class="stat-key">CAL WARNINGS</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DISTRIBUTION ROW -->
+    <section class="dist-row">
+      <div class="dist-card">
+        <h3>CONFIDENCE DISTRIBUTION</h3>
+        <div class="dist-bars" id="confDist"></div>
+      </div>
+      <div class="dist-card">
+        <h3>DATA SOURCE BREAKDOWN</h3>
+        <div class="dist-bars" id="sourceDist"></div>
+      </div>
+      <div class="dist-card">
+        <h3>AVERAGES</h3>
+        <div class="avg-grid">
+          <div class="avg-item">
+            <span class="avg-num" id="avgCal">--</span>
+            <span class="avg-label">KCAL / SCAN</span>
+          </div>
+          <div class="avg-item">
+            <span class="avg-num" id="avgItems">--</span>
+            <span class="avg-label">ITEMS / SCAN</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCAN TABLE -->
+    <section class="scan-section">
+      <div class="scan-head">
+        <h3>SCAN FEED</h3>
+        <div class="scan-controls">
+          <span class="scan-count" id="scanCount">-- scans</span>
+          <button class="scan-refresh" id="refreshBtn">REFRESH ↻</button>
+        </div>
+      </div>
+      <div class="scan-table-wrap">
+        <table class="scan-table">
+          <thead>
+            <tr>
+              <th>IMAGE</th>
+              <th>USER</th>
+              <th>TIME</th>
+              <th>ITEMS</th>
+              <th>CALORIES</th>
+              <th>CONFIDENCE</th>
+              <th>SOURCES</th>
+              <th>TOTAL MS</th>
+              <th>OPUS</th>
+            </tr>
+          </thead>
+          <tbody id="scanBody">
+            <tr><td colspan="9" class="scan-empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="scan-pager">
+        <button class="page-btn" id="prevBtn" disabled>← PREV</button>
+        <span class="page-info" id="pageInfo">Page 1</span>
+        <button class="page-btn" id="nextBtn">NEXT →</button>
+      </div>
+    </section>
+
+    </div><!-- /#tab-overview -->
+
+    <!-- USERS TAB — list every account with scan stats. Click row →
+         user-detail modal with profile fields, recent scans, and
+         admin actions (disable/enable, reset password, delete). -->
+    <div class="tab-panel" id="tab-users">
+      <section class="users-section">
+        <div class="users-head">
+          <h3>USERS</h3>
+          <div class="users-controls">
+            <span class="users-count" id="usersCount">-- users</span>
+            <button class="users-refresh" id="usersRefreshBtn">REFRESH ↻</button>
+          </div>
+        </div>
+        <div class="users-table-wrap">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>USER</th>
+                <th>ROLE</th>
+                <th>STATUS</th>
+                <th>SCANS</th>
+                <th>LAST LOGIN</th>
+                <th>CREATED</th>
+                <th>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody">
+              <tr><td colspan="7" class="users-empty">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div><!-- /#tab-users -->
+
+    <!-- USER DETAIL MODAL — separate from scan detail so both modals
+         can coexist (no shared state). -->
+    <div class="modal-overlay" id="userModalOverlay" style="display:none">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>USER DETAIL</h3>
+          <button class="modal-close" id="userModalClose">✕</button>
+        </div>
+        <div class="modal-body" id="userModalBody"></div>
+      </div>
+    </div>
+
+    <!-- SCAN DETAIL MODAL -->
+    <div class="modal-overlay" id="modalOverlay" style="display:none">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>SCAN DETAIL</h3>
+          <button class="modal-close" id="modalClose">✕</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/static/admin/script.js"></script>
+</body>
+</html>
