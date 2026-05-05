@@ -2946,6 +2946,12 @@ const btnAcctSettingsConfirmEmail = $('btnAcctSettingsConfirmEmail');
 const acctSettingsError           = $('acctSettingsError');
 const btnAccountSettingsEntry     = $('btnAccountSettingsEntry');
 
+// Phase 6b — About + Help sub-sheet element references.
+const aboutSheet              = $('aboutSheet');
+const helpSheet               = $('helpSheet');
+const btnAccountAboutEntry    = $('btnAccountAboutEntry');
+const btnAccountHelpEntry     = $('btnAccountHelpEntry');
+
 // Activity-level → human label (Russian) map. Used by the
 // "selected name appears below the icon row" pattern.
 const ACTIVITY_LABELS_RU = {
@@ -3265,6 +3271,42 @@ function closeAcctSettingsSheet() {
   acctSettingsSheet.classList.remove('visible');
   document.documentElement.classList.remove('acct-settings-sheet-open');
   setTimeout(() => acctSettingsSheet.setAttribute('aria-hidden', 'true'), 400);
+}
+
+// Phase 6b — About + Help sub-sheets. Identical mechanics to the
+// acct-settings sub-sheet above; kept as separate functions rather than
+// generalized so each sheet's open behavior can diverge later (e.g.
+// resetting accordion state on Help open).
+function openAboutSheet() {
+  if (!aboutSheet) return;
+  aboutSheet.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => aboutSheet.classList.add('visible'));
+  document.documentElement.classList.add('about-sheet-open');
+}
+function closeAboutSheet() {
+  if (!aboutSheet) return;
+  aboutSheet.classList.remove('visible');
+  document.documentElement.classList.remove('about-sheet-open');
+  setTimeout(() => aboutSheet.setAttribute('aria-hidden', 'true'), 400);
+}
+function openHelpSheet() {
+  if (!helpSheet) return;
+  // Reset all FAQ items to closed on each open so the user gets a
+  // clean state and doesn't scroll past surprising open answers.
+  helpSheet.querySelectorAll('.faq-item.open').forEach(it => {
+    it.classList.remove('open');
+    const q = it.querySelector('.faq-question');
+    if (q) q.setAttribute('aria-expanded', 'false');
+  });
+  helpSheet.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => helpSheet.classList.add('visible'));
+  document.documentElement.classList.add('help-sheet-open');
+}
+function closeHelpSheet() {
+  if (!helpSheet) return;
+  helpSheet.classList.remove('visible');
+  document.documentElement.classList.remove('help-sheet-open');
+  setTimeout(() => helpSheet.setAttribute('aria-hidden', 'true'), 400);
 }
 
 function setAccountSheetError(msg, kind) {
@@ -4492,6 +4534,32 @@ function setupAccount() {
   }
   document.querySelectorAll('[data-acct-settings-close]').forEach(el => {
     el.addEventListener('click', closeAcctSettingsSheet);
+  });
+
+  // Phase 6b — About + Help entries + sheet close attributes + FAQ
+  // accordion. Accordion is a pure class toggle; CSS handles the
+  // max-height transition and chevron rotation.
+  if (btnAccountAboutEntry) {
+    btnAccountAboutEntry.addEventListener('click', () => { haptic(); openAboutSheet(); });
+  }
+  if (btnAccountHelpEntry) {
+    btnAccountHelpEntry.addEventListener('click', () => { haptic(); openHelpSheet(); });
+  }
+  document.querySelectorAll('[data-about-close]').forEach(el => {
+    el.addEventListener('click', closeAboutSheet);
+  });
+  document.querySelectorAll('[data-help-close]').forEach(el => {
+    el.addEventListener('click', closeHelpSheet);
+  });
+  document.querySelectorAll('.faq-item').forEach(item => {
+    const q = item.querySelector('.faq-question');
+    if (!q) return;
+    q.addEventListener('click', () => {
+      const open = !item.classList.contains('open');
+      item.classList.toggle('open', open);
+      q.setAttribute('aria-expanded', open ? 'true' : 'false');
+      haptic(4);
+    });
   });
   if (btnAcctSettingsConfirmEmail) {
     btnAcctSettingsConfirmEmail.addEventListener('click', async () => {

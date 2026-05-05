@@ -7241,3 +7241,283 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   }
   .acct-settings-sheet-card { transform: translate(-50%, 0); }
 }
+
+
+/* ════════════════════════════════════════════════════════════════════
+   PHASE 6b — About + Help sub-sheets
+
+   Same shell pattern as the Phase 6a Account Settings sub-sheet; rules
+   are duplicated rather than refactored to a shared base class so 6a
+   stays untouched. If a 4th sub-sheet ever lands, refactor to a shared
+   .sub-sheet base then.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Shell (shared between About + Help) ─────────────────────────── */
+.about-sheet,
+.help-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  pointer-events: none;
+}
+.about-sheet.visible,
+.help-sheet.visible { pointer-events: auto; }
+
+.about-sheet-backdrop,
+.help-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  opacity: 0;
+  transition: opacity 280ms ease;
+  -webkit-backdrop-filter: blur(2px);
+          backdrop-filter: blur(2px);
+}
+.about-sheet.visible .about-sheet-backdrop,
+.help-sheet.visible .help-sheet-backdrop { opacity: 1; }
+
+.about-sheet-card,
+.help-sheet-card {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 92vh;
+  border-radius: 22px 22px 0 0;
+  background: var(--bg2);
+  box-shadow:
+    0 -10px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(198, 183, 155, 0.10);
+  transform: translate(-50%, 100%);
+  transition: transform 380ms cubic-bezier(.4, 0, .2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.about-sheet.visible .about-sheet-card,
+.help-sheet.visible .help-sheet-card {
+  transform: translate(-50%, 0);
+}
+
+.about-sheet-handle,
+.help-sheet-handle {
+  width: 40px; height: 4px;
+  margin: 9px auto 0;
+  border-radius: 999px;
+  background: rgba(198, 183, 155, 0.22);
+  flex-shrink: 0;
+}
+
+.about-sheet-close,
+.help-sheet-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--t2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.about-sheet-close svg,
+.help-sheet-close svg { width: 20px; height: 20px; }
+.about-sheet-close:hover,
+.help-sheet-close:hover { color: var(--t1); }
+
+.about-sheet-body,
+.help-sheet-body {
+  padding: 20px 22px 26px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.about-sheet-title,
+.help-sheet-title {
+  margin: 4px 0 0;
+  font-family: var(--fdisp);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--t1);
+  letter-spacing: -.5px;
+}
+
+/* ── About sheet content ─────────────────────────────────────────── */
+.about-tagline {
+  margin: -6px 0 0;
+  font-family: var(--fmono);
+  font-size: 11px;
+  color: var(--t3);
+  opacity: 0.7;
+  letter-spacing: 0.02em;
+}
+.about-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.about-section-title {
+  margin: 0;
+  font-family: var(--fmono);
+  font-size: 11px;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+.about-paragraph {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--t2);
+}
+.about-sources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.about-sources li {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--t2);
+  padding-left: 12px;
+  border-left: 2px solid rgba(198, 183, 155, 0.14);
+}
+.about-sources li strong {
+  color: var(--t1);
+  font-weight: 600;
+}
+.about-legal-links {
+  margin: 0;
+  font-size: 13px;
+  color: var(--t3);
+}
+.about-legal-links a {
+  color: var(--t1);
+  text-decoration: none;
+  border-bottom: 1px dotted rgba(198, 183, 155, 0.30);
+}
+.about-legal-links a:hover { border-bottom-color: rgba(198, 183, 155, 0.55); }
+.about-legal-links span { margin: 0 6px; opacity: 0.55; }
+
+.about-telegram {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(198, 183, 155, 0.06);
+  border: 1px solid rgba(198, 183, 155, 0.18);
+  border-radius: 12px;
+  color: var(--t1);
+  text-decoration: none;
+  font-size: 14px;
+  align-self: flex-start;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.about-telegram:hover {
+  background: rgba(198, 183, 155, 0.10);
+  border-color: rgba(198, 183, 155, 0.32);
+}
+
+/* ── Help sheet — FAQ accordion ──────────────────────────────────── */
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.faq-item {
+  border-bottom: 1px solid rgba(198, 183, 155, 0.08);
+}
+.faq-item:last-child { border-bottom: none; }
+
+.faq-question {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  font-size: 14px;
+  color: var(--t1);
+  line-height: 1.35;
+}
+.faq-question span { flex: 1; min-width: 0; }
+.faq-chev {
+  flex-shrink: 0;
+  color: var(--t3);
+  transition: transform 220ms ease;
+}
+.faq-item.open .faq-chev {
+  transform: rotate(180deg);
+  color: var(--t2);
+}
+
+.faq-answer {
+  overflow: hidden;
+  max-height: 0;
+  padding: 0 4px;
+  transition: max-height 360ms cubic-bezier(.4, 0, .2, 1),
+              padding-bottom 280ms ease;
+}
+.faq-answer p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--t2);
+}
+.faq-item.open .faq-answer {
+  max-height: 480px;
+  padding-bottom: 14px;
+}
+
+.help-support-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 14px 20px;
+  background: rgba(198, 183, 155, 0.08);
+  border: 1px solid rgba(198, 183, 155, 0.22);
+  border-radius: 14px;
+  color: var(--t1);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.help-support-cta:hover {
+  background: rgba(198, 183, 155, 0.13);
+  border-color: rgba(198, 183, 155, 0.38);
+}
+
+/* Reduced-motion: skip the slide + accordion easing. */
+@media (prefers-reduced-motion: reduce) {
+  .about-sheet-card,
+  .about-sheet-backdrop,
+  .help-sheet-card,
+  .help-sheet-backdrop {
+    transition: opacity 180ms ease;
+  }
+  .about-sheet-card,
+  .help-sheet-card { transform: translate(-50%, 0); }
+  .faq-answer { transition: none; }
+  .faq-chev { transition: none; }
+}

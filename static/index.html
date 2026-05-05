@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/app.css?v=20260505-phase6a">
+  <link rel="stylesheet" href="/static/css/app.css?v=20260505-phase6b">
   <link rel="stylesheet" href="/static/css/cookie-banner.css?v=20260504-1">
 </head>
 <body>
@@ -841,8 +841,8 @@
                 </svg>
               </button>
 
-              <!-- About entry — disabled until Phase 6b ships its sheet -->
-              <button class="account-disclosure account-disclosure--coming" id="btnAccountAboutEntry" type="button" disabled aria-disabled="true">
+              <!-- About entry — opens slide-up About sub-sheet -->
+              <button class="account-disclosure" id="btnAccountAboutEntry" type="button">
                 <div class="account-disclosure-left">
                   <div class="account-disclosure-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
@@ -853,13 +853,15 @@
                   </div>
                   <div class="account-disclosure-text">
                     <div class="account-disclosure-title">О приложении</div>
-                    <div class="account-disclosure-sub">скоро</div>
                   </div>
                 </div>
+                <svg class="account-disclosure-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
               </button>
 
-              <!-- Help entry — disabled until Phase 6b ships its sheet -->
-              <button class="account-disclosure account-disclosure--coming" id="btnAccountHelpEntry" type="button" disabled aria-disabled="true">
+              <!-- Help entry — opens slide-up Help sub-sheet -->
+              <button class="account-disclosure" id="btnAccountHelpEntry" type="button">
                 <div class="account-disclosure-left">
                   <div class="account-disclosure-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
@@ -870,9 +872,11 @@
                   </div>
                   <div class="account-disclosure-text">
                     <div class="account-disclosure-title">Помощь</div>
-                    <div class="account-disclosure-sub">скоро</div>
                   </div>
                 </div>
+                <svg class="account-disclosure-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
               </button>
 
             </div>
@@ -1204,12 +1208,195 @@
     </div>
   </div>
 
+  <!-- Phase 6b: About sub-sheet. Same shell pattern as the Account
+       Settings sub-sheet (z-index 110, slide-up, glass card). Static
+       content sourced from plan-next-chat.json appendix.philosophy_draft. -->
+  <div class="about-sheet" id="aboutSheet" aria-hidden="true">
+    <div class="about-sheet-backdrop" data-about-close></div>
+    <div class="about-sheet-card glass glass--strong" role="dialog" aria-modal="true" aria-label="О приложении" id="aboutSheetCard">
+      <div class="about-sheet-handle" aria-hidden="true"></div>
+      <button class="about-sheet-close" type="button" aria-label="Закрыть" data-about-close>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <div class="about-sheet-body">
+        <h2 class="about-sheet-title">О приложении</h2>
+        <p class="about-tagline">FORK · v1.6 · 2026-05-05</p>
+
+        <section class="about-section">
+          <h3 class="about-section-title">Философия</h3>
+          <p class="about-paragraph">FORK создан для тех, кто хочет понимать, что они едят, без счёта калорий вручную. Мы верим, что осознанное питание — это не дисциплина, а внимание к простым вещам: цвету тарелки, размеру порции, тому, как тело отзывается на еду.</p>
+          <p class="about-paragraph">Никаких таблиц, никаких сложных подсчётов. Просто фотография, и через несколько секунд — честная оценка. Мы знаем, что ИИ не идеален, поэтому показываем уверенность в каждой оценке и даём возможность поправить — каждая ваша правка делает систему точнее для всех.</p>
+          <p class="about-paragraph">Ваши данные принадлежат вам. Мы храним их, чтобы синхронизировать между устройствами, и не делимся ни с кем. Удалить аккаунт — одна кнопка.</p>
+        </section>
+
+        <section class="about-section">
+          <h3 class="about-section-title">Источники данных</h3>
+          <ul class="about-sources">
+            <li><strong>Российская база</strong> — Скурихин И.М., Тутельян В.А. «Химический состав пищевых продуктов»</li>
+            <li><strong>USDA FoodData Central</strong> — открытая база Минсельхоза США</li>
+            <li><strong>OpenFoodFacts</strong> — народная база упакованных продуктов</li>
+          </ul>
+        </section>
+
+        <section class="about-section">
+          <h3 class="about-section-title">Документы</h3>
+          <p class="about-legal-links">
+            <a href="/privacy" target="_blank" rel="noopener">Политика конфиденциальности</a>
+            <span aria-hidden="true">·</span>
+            <a href="/terms" target="_blank" rel="noopener">Условия использования</a>
+          </p>
+        </section>
+
+        <section class="about-section about-contact">
+          <h3 class="about-section-title">Поддержка</h3>
+          <a class="about-telegram" href="https://t.me/ForkWorkBro" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+              <path d="M21 5L2 12.5l7 1.5 1.5 7L21 5z"/>
+              <path d="M21 5l-12 9"/>
+            </svg>
+            <span>@ForkWorkBro</span>
+          </a>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phase 6b: Help sub-sheet. 12-FAQ accordion sourced from
+       plan-next-chat.json appendix.faq_draft. CSS-only accordion via
+       max-height transition; clean and works without JS-driven physics. -->
+  <div class="help-sheet" id="helpSheet" aria-hidden="true">
+    <div class="help-sheet-backdrop" data-help-close></div>
+    <div class="help-sheet-card glass glass--strong" role="dialog" aria-modal="true" aria-label="Помощь" id="helpSheetCard">
+      <div class="help-sheet-handle" aria-hidden="true"></div>
+      <button class="help-sheet-close" type="button" aria-label="Закрыть" data-help-close>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <div class="help-sheet-body">
+        <h2 class="help-sheet-title">Помощь</h2>
+
+        <div class="faq-list">
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Как FORK определяет калории по фото?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>Несколько шагов: сначала ИИ определяет, что на тарелке, потом оценивает порции по визуальным ориентирам (тарелка, вилка, ваши руки), потом проверяет данные по базам российских и зарубежных продуктов. На последнем шаге второй ИИ перепроверяет результат.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Насколько точна оценка?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>Для блюд с чёткими ингредиентами (мясо, рис, паста) — обычно ±10-15%. Для смешанных блюд (борщ, плов, салаты) — менее точно. Если уверенность низкая, мы помечаем это в результате — и можно поправить вручную.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Что делать, если оценка неверная?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>На экране результатов можно изменить граммы любого ингредиента, добавить или удалить продукт. Все правки сохраняются — и помогают системе становиться точнее.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Что происходит с моими фотографиями?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>Хранятся в зашифрованном виде на наших серверах в России. Никому не передаются. Можно удалить любой скан или весь аккаунт — данные стираются безвозвратно.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Можно ли пользоваться без интернета?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>Для нового скана — нужен интернет. Сохранённая история отображается без сети.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Сколько сканов можно сделать в день?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>До 20 в день для зарегистрированных пользователей. Если нужно больше — напишите в поддержку, увеличим.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Что значит «не съел»?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>Иногда фотографируешь еду, но не съедаешь её всю или передумываешь. Эта пометка не учитывается в дневной норме калорий — только то, что вы реально съели.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Можно ли использовать на нескольких устройствах?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>Да. Войдите с тем же аккаунтом, и история, настройки и вода синхронизируются автоматически.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Забыл пароль — что делать?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>На странице входа нажмите «Забыли пароль?». Введите email, и мы пришлём ссылку для сброса. Срок действия ссылки — 1 час.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Как добавить блюдо вручную?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>На экране результатов есть кнопка «+ Ингредиент». Введите название и граммы — система найдёт калорийность по нашей базе.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Что такое режим гостя?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>Первые 5 сканов можно сделать без регистрации, чтобы попробовать. После этого нужно создать аккаунт — все ваши предыдущие сканы сохранятся в нём.</p></div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+              <span>Как удалить аккаунт?</span>
+              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div class="faq-answer"><p>Дополнительно → Настройки аккаунта → Удалить аккаунт. Подтвердите паролем. Все данные удаляются безвозвратно (кроме обезличенных значений, которые помогают улучшать систему).</p></div>
+          </div>
+
+        </div>
+
+        <a class="help-support-cta" href="https://t.me/ForkWorkBro" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
+            <path d="M21 5L2 12.5l7 1.5 1.5 7L21 5z"/>
+            <path d="M21 5l-12 9"/>
+          </svg>
+          <span>Связаться с поддержкой</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- Cache-bust: bump the ?v= when shipping JS changes so iOS Safari and
        aggressive proxy caches always fetch fresh files. -->
   <script src="/static/js/spring.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/storage.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/api.js?v=20260505-phase35b-trigger"></script>
-  <script src="/static/js/app.js?v=20260505-phase6a"></script>
+  <script src="/static/js/app.js?v=20260505-phase6b"></script>
   <script src="/static/js/cookie-banner.js?v=20260504-1" defer></script>
 </body>
 </html>
