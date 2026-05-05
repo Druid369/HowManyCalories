@@ -1815,8 +1815,14 @@ async def lookup_ingredient(request: Request, payload: LookupRequest):
     return enriched
 
 
+# /api/validate-edits hits Sonnet directly — every call costs real money
+# (~$0.01-0.03). Tightened from 5/min to 3/min per IP in Phase 0.5: legit
+# usage is one validation per scan with maybe a retry, so 3/min is plenty
+# and worst-case sustained-abuse cost drops from ~$6/hour to ~$3.6/hour
+# per IP. Per-user daily cap (mirroring MAX_SCANS_PER_USER_PER_DAY) is a
+# follow-up if cost shows up in production logs.
 @app.post("/api/validate-edits", response_model=ValidationVerdict)
-@limiter.limit("5/minute")
+@limiter.limit("3/minute")
 async def validate_edits(
     request: Request,
     image: UploadFile = File(...),
