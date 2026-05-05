@@ -367,6 +367,55 @@ async def request_lifecycle(request: Request, call_next):
     return response
 
 
+# ── Security headers ──────────────────────────────────────────────────────
+# Defense-in-depth headers applied to every response. CSP allows Google
+# Fonts (the only third-party we load) and 'unsafe-inline' scripts because
+# the theme bootstrap in static/index.html MUST stay inline (moving it
+# reintroduces the warm-theme flash before storage.js boots). Inline
+# scripts also live in /privacy and /terms for embed-mode + legal-info
+# fetch. XSS protection from CSP is therefore weaker than ideal —
+# migration to per-script hashes is a follow-up. Everything else
+# (clickjacking, mime-sniff, base injection, form exfil, third-party
+# script loads, plugin/object embeds) IS blocked.
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' data: blob:; "
+    "connect-src 'self'; "
+    "frame-ancestors 'none'; "
+    "form-action 'self'; "
+    "base-uri 'self'; "
+    "object-src 'none'"
+)
+# Disable browser features the app never uses. Camera input goes through
+# <input type="file" capture> which does NOT need the camera permission
+# (that's only for getUserMedia()), so denying it here is safe.
+_PERMISSIONS_POLICY = (
+    "geolocation=(), microphone=(), camera=(), payment=(), usb=(), "
+    "accelerometer=(), gyroscope=(), magnetometer=(), midi=()"
+)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = _CSP
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "same-origin"
+    response.headers["Permissions-Policy"] = _PERMISSIONS_POLICY
+    if IS_PROD:
+        # 1 year, all subdomains. No 'preload' until we're committed to
+        # never serving myfork.ru over plain HTTP again — preload-list
+        # entries are very hard to remove.
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+    return response
+
+
 # ── Auth endpoints ────────────────────────────────────────────────────────
 # Cookie-based session auth. Public routes (no session required):
 #   POST /api/auth/register, POST /api/auth/login
