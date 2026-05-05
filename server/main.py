@@ -325,6 +325,32 @@ app.add_middleware(
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 
 
+# Magic-byte signatures for the four image formats we accept. Used by
+# _sniff_image_type to verify that an upload's bytes match its declared
+# content_type — without this, a client can send arbitrary bytes (HTML,
+# scripts, opaque binaries) under cover of `Content-Type: image/jpeg`
+# and we'd happily save them and pass them through the pipeline.
+_IMAGE_SIGNATURES: tuple[tuple[bytes, str], ...] = (
+    (b"\xff\xd8\xff",      "image/jpeg"),
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"GIF87a",            "image/gif"),
+    (b"GIF89a",            "image/gif"),
+)
+
+
+def _sniff_image_type(buf: bytes) -> str | None:
+    """Return canonical content-type if `buf` starts with a supported
+    image signature, else None. WebP needs special handling because its
+    magic isn't a fixed prefix — bytes 0-3 must be 'RIFF' and bytes
+    8-11 must be 'WEBP' (the 4 bytes between are the file size)."""
+    for sig, ctype in _IMAGE_SIGNATURES:
+        if buf.startswith(sig):
+            return ctype
+    if len(buf) >= 12 and buf[:4] == b"RIFF" and buf[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
 @app.middleware("http")
 async def request_lifecycle(request: Request, call_next):
     rid = str(uuid.uuid4())[:8]
@@ -784,6 +810,13 @@ async def upload_avatar(request: Request, image: UploadFile = File(...)):
         raise HTTPException(400, "Avatar too large. Max 4MB.")
     if not image_bytes:
         raise HTTPException(400, "Empty image")
+    sniffed = _sniff_image_type(image_bytes[:16])
+    if sniffed is None or sniffed != image.content_type or sniffed not in _AVATAR_TYPES:
+        logger.warning("avatar_magic_mismatch", extra={
+            "claimed": image.content_type, "sniffed": sniffed,
+            "user_id": user["id"],
+        })
+        raise HTTPException(400, "Файл не похож на изображение JPEG, PNG или WebP.")
 
     # Clean up any prior avatar files for this user (different extensions).
     for ext in _AVATAR_TYPES.values():
@@ -1380,6 +1413,14 @@ async def analyze(
         logger.warning("image_too_large", extra={"size_bytes": size_bytes, "limit_mb": MAX_IMAGE_SIZE_MB})
         raise HTTPException(400, f"Image too large. Maximum size is {MAX_IMAGE_SIZE_MB}MB.")
 
+    sniffed = _sniff_image_type(image_bytes[:16])
+    if sniffed is None or sniffed != image.content_type:
+        logger.warning("analyze_magic_mismatch", extra={
+            "claimed": image.content_type, "sniffed": sniffed,
+            "user_id": user["id"],
+        })
+        raise HTTPException(400, "Файл не похож на изображение. Используйте JPEG, PNG, WebP или GIF.")
+
     logger.info("analyze_start", extra={
         "content_type": image.content_type,
         "size_bytes": size_bytes,
@@ -1505,6 +1546,14 @@ async def analyze_stream(
     image_bytes = await image.read()
     if len(image_bytes) > MAX_IMAGE_SIZE_MB * 1024 * 1024:
         raise HTTPException(400, f"Image too large. Maximum size is {MAX_IMAGE_SIZE_MB}MB.")
+
+    sniffed = _sniff_image_type(image_bytes[:16])
+    if sniffed is None or sniffed != image.content_type:
+        logger.warning("stream_magic_mismatch", extra={
+            "claimed": image.content_type, "sniffed": sniffed,
+            "user_id": user["id"],
+        })
+        raise HTTPException(400, "Файл не похож на изображение. Используйте JPEG, PNG, WebP или GIF.")
 
     img_hash = hashlib.sha256(image_bytes).hexdigest()
     ext = {
@@ -1751,6 +1800,14 @@ async def validate_edits(
     image_bytes = await image.read()
     if len(image_bytes) > MAX_IMAGE_SIZE_MB * 1024 * 1024:
         raise HTTPException(400, f"Image too large. Max {MAX_IMAGE_SIZE_MB}MB.")
+
+    sniffed = _sniff_image_type(image_bytes[:16])
+    if sniffed is None or sniffed != image.content_type:
+        logger.warning("validate_magic_mismatch", extra={
+            "claimed": image.content_type, "sniffed": sniffed,
+            "user_id": user["id"],
+        })
+        raise HTTPException(400, "Файл не похож на изображение.")
 
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
 
