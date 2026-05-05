@@ -4614,11 +4614,12 @@ html {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   /* Reserve bottom space for the action strip's slot. The strip is
-     position: absolute and overlays this region when it appears, so
-     cards won't be hidden underneath it. With this padding constant
-     (whether dirty or not), .account-scroll's content layout never
-     shifts when the strip toggles. */
-  padding-bottom: 100px;
+     position: absolute and overlays this region when it appears.
+     Phase 6d.1: trimmed from 100px to 56px after Eugene flagged
+     "2-3cm dead space" at the bottom of the Дополнительно card.
+     The actions strip itself is ~52px tall, so 56px still keeps
+     it from clipping content underneath without the wasted look. */
+  padding-bottom: 56px;
 }
 .account-scroll::-webkit-scrollbar { display: none; }
 
@@ -5047,6 +5048,9 @@ html {
 /* Disclosure rows for advanced */
 .account-advanced {
   padding: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 .account-disclosure {
   width: 100%;
@@ -5062,9 +5066,14 @@ html {
   text-align: left;
   transition: background .15s;
 }
-.account-disclosure + .account-disclosure {
-  border-top: 1px solid rgba(var(--t1-rgb), .08);
-}
+/* Phase 6d.1: removed the sibling-border rule. The previous
+   `.account-disclosure + .account-disclosure { border-top }` only
+   matched when two disclosures were direct siblings — but the theme
+   drawer (`.account-theme-drawer`) sits between Theme and Settings,
+   breaking the sibling chain and producing an inconsistent visual
+   (Settings had no top divider, About + Help did). Now all tiles
+   render as flush items with `gap` on the parent, matching the
+   spaced-card aesthetic of the redesign. */
 .account-disclosure:hover { background: rgba(var(--t1-rgb), .03); }
 .account-disclosure-left {
   display: flex;
@@ -5128,15 +5137,14 @@ html {
 .account-theme-drawer {
   display: grid;
   grid-template-rows: 0fr;
-  /* Slower, gentler easing — `cubic-bezier(.4, 0, .2, 1)` at .32s felt
-     "rapid". Extending duration + using a gentler ease-out curve gives
-     the disclosure a more deliberate, premium reveal motion. */
   transition: grid-template-rows .42s cubic-bezier(.22, 1, .36, 1);
-  /* Pre-promote to a GPU layer so the first frame of the open animation
-     doesn't stutter on layer creation, and contain paint so the drawer's
-     repaint can't bleed out into the parent card. */
   will-change: grid-template-rows;
   contain: layout paint;
+  /* Phase 6d.1: explicit overflow:hidden on the wrapper. `contain: paint`
+     alone wasn't reliably clipping the inner padding in the closed
+     state — a thin band of the swatch row was visible below the Theme
+     row. Belt-and-braces with overflow on both wrapper + inner. */
+  overflow: hidden;
 }
 .account-theme-drawer.open { grid-template-rows: 1fr; }
 
@@ -5207,36 +5215,11 @@ html {
 
 .account-bottom-pad { height: 14px; flex-shrink: 0; }
 
-/* Phase 1 — discreet 152-ФЗ legal-link row inside the account sheet.
-   Subordinate weight: small mono, --t3 colour, generous breathing room.
-   Phase 6 will fold this into a dedicated Legal section; until then
-   this single row satisfies the requirement to expose the policy from
-   inside the app without competing with real settings rows. */
-.account-legal-row {
-  text-align: center;
-  font-family: var(--fmono, 'JetBrains Mono', monospace);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--t3);
-  margin: 18px 0 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  opacity: .82;
-}
-.account-legal-row a {
-  color: var(--t2);
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: color 200ms ease, border-color 200ms ease;
-}
-.account-legal-row a:hover {
-  color: var(--t1);
-  border-bottom-color: rgba(var(--t2-rgb, 168,154,134), .35);
-}
-.account-legal-row span { color: var(--t4); }
+/* Phase 6d.1: deleted ~28 lines of .account-legal-row* CSS rules.
+   The standalone <p class="account-legal-row"> element was removed
+   in Phase 6a — its legal links were absorbed into the new
+   .account-version-footer inside the Дополнительно card. Verified
+   zero remaining DOM references via grep before deletion. */
 
 /* ══════════════════════════════════════════════
    DELETE-ACCOUNT MODAL — destructive-action confirmation.
