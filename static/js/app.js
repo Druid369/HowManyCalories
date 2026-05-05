@@ -2972,6 +2972,13 @@ const acctSettingsEmailInput      = $('acctSettingsEmailInput');
 const acctSettingsEmailEditPw     = $('acctSettingsEmailEditPassword');
 const btnAcctSettingsEmailSave    = $('btnAcctSettingsEmailSave');
 
+// Phase 6d.4 — additional element references for the redesigned
+// Account Settings sub-sheet.
+const acctSettingsEmailPillText      = $('acctSettingsEmailPillText');
+const acctSettingsEmailHelper        = $('acctSettingsEmailHelper');
+const btnAcctSettingsEmailCancel     = $('btnAcctSettingsEmailCancel');
+const acctChangePasswordCollapse     = $('acctChangePasswordCollapse');
+
 // Activity-level → human label (Russian) map. Used by the
 // "selected name appears below the icon row" pattern.
 const ACTIVITY_LABELS_RU = {
@@ -3263,33 +3270,46 @@ function setAcctSettingsError(msg) {
 
 function populateAcctSettingsSheet(user) {
   if (!user) return;
+  // Page-id renders as `#000XXX · username` (or just one if the other
+  // is missing). The new Phase 6d.4 layout puts this directly under
+  // the page title rather than as a standalone badge mid-sheet.
   if (acctSettingsIdBadge) {
-    acctSettingsIdBadge.textContent = user.id ? '#' + String(user.id).padStart(6, '0') : '';
+    const id = user.id ? '#' + String(user.id).padStart(6, '0') : '';
+    const sep = id && user.username ? ' · ' : '';
+    acctSettingsIdBadge.textContent = id + sep + (user.username || '');
   }
   if (!acctSettingsEmailRow) return;
-  // Phase 6c: email row is always visible. Three states driven by JS:
-  //   no email      -> "Не задан"   + Добавить
-  //   has, unverif  -> address + Не подтверждён pill + Подтвердить + Изменить
-  //   has, verified -> address + Подтверждён pill              + Изменить
+  // Three email states drive: value, value-empty class, pill state +
+  // text, helper text copy, button visibility + label.
   const hasEmail = !!(user.email && String(user.email).trim());
   const verified = hasEmail && !!user.email_verified;
   if (acctSettingsEmailValue) {
     acctSettingsEmailValue.textContent = hasEmail ? user.email : 'Не задан';
+    acctSettingsEmailValue.classList.toggle('acct-field-value--empty', !hasEmail);
   }
   if (acctSettingsEmailPill) {
-    acctSettingsEmailPill.hidden = !hasEmail;
-    acctSettingsEmailPill.textContent = verified ? 'Подтверждён' : 'Не подтверждён';
     acctSettingsEmailPill.dataset.state = verified ? 'verified' : 'unverified';
+  }
+  if (acctSettingsEmailPillText) {
+    acctSettingsEmailPillText.textContent = verified ? 'Подтверждён' : 'Не подтверждён';
+  }
+  if (acctSettingsEmailHelper) {
+    acctSettingsEmailHelper.textContent = !hasEmail
+      ? 'Привяжите email для восстановления доступа'
+      : (verified ? '' : 'Подтвердите email чтобы защитить аккаунт');
   }
   if (btnAcctSettingsConfirmEmail) {
     btnAcctSettingsConfirmEmail.hidden = !hasEmail || verified;
+    btnAcctSettingsConfirmEmail.textContent = 'Подтвердить';
   }
   if (btnAcctSettingsEditEmail) {
     btnAcctSettingsEditEmail.textContent = hasEmail ? 'Изменить' : 'Добавить';
   }
-  // Always close the edit form on populate so a stale half-typed state
+  // Always reset the inline forms on populate so stale half-typed state
   // doesn't linger across sheet open / refresh-after-save.
   if (acctSettingsEmailEditForm) acctSettingsEmailEditForm.classList.remove('open');
+  if (acctChangePasswordCollapse) acctChangePasswordCollapse.classList.remove('open');
+  if (btnAccountChangePasswordRow) btnAccountChangePasswordRow.setAttribute('aria-expanded', 'false');
 }
 
 function openAcctSettingsSheet() {
@@ -4621,14 +4641,18 @@ function setupAccount() {
   // toggle button + its event handler block lived here and have been
   // removed since the element no longer exists in the DOM.)
 
-  // Change-password row toggles its inline form open. Phase 6a moved
-  // the row + form into the Account Settings sub-sheet, so the legacy
-  // .pw-open / .pw-form-open class additions on the parent account
-  // sheet are no longer needed — the sub-sheet handles its own scroll.
-  if (btnAccountChangePasswordRow && accountChangePasswordForm) {
+  // Phase 6d.4: change-password collapse trigger. The .open class lives
+  // on the .acct-collapse wrapper now (not on the inner content), so
+  // CSS .acct-collapse.open .acct-collapse-content { grid-template-rows: 1fr }
+  // can drive the height transition properly. Falls back to toggling
+  // accountChangePasswordForm if the wrapper ref is missing (defensive
+  // for any pre-6d.4 cached HTML).
+  if (btnAccountChangePasswordRow) {
+    const collapseEl = acctChangePasswordCollapse || accountChangePasswordForm;
     btnAccountChangePasswordRow.addEventListener('click', () => {
-      const open = !accountChangePasswordForm.classList.contains('open');
-      accountChangePasswordForm.classList.toggle('open', open);
+      if (!collapseEl) return;
+      const open = !collapseEl.classList.contains('open');
+      collapseEl.classList.toggle('open', open);
       btnAccountChangePasswordRow.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (open && accountCurrentPassword) {
         setTimeout(() => accountCurrentPassword.focus(), 290);
@@ -4742,13 +4766,35 @@ function setupAccount() {
       const open = !acctSettingsEmailEditForm.classList.contains('open');
       acctSettingsEmailEditForm.classList.toggle('open', open);
       if (open) {
+        // Pre-fill so users editing only fix typos.
         if (acctSettingsEmailInput) {
           acctSettingsEmailInput.value = (_hmcCurrentUser && _hmcCurrentUser.email) || '';
         }
         if (acctSettingsEmailEditPw) acctSettingsEmailEditPw.value = '';
         setTimeout(() => acctSettingsEmailInput && acctSettingsEmailInput.focus(), 220);
+        // Phase 6d.4: relabel button to a clear collapse cue while
+        // the form is open. Restored to Изменить/Добавить on close
+        // (handled by populate or here below).
+        btnAcctSettingsEditEmail.textContent = 'Свернуть';
+      } else {
+        const hasEmail = !!(_hmcCurrentUser && _hmcCurrentUser.email);
+        btnAcctSettingsEditEmail.textContent = hasEmail ? 'Изменить' : 'Добавить';
       }
       setAcctSettingsError('');
+      haptic(4);
+    });
+  }
+  // Phase 6d.4: explicit Cancel button inside the email-edit form.
+  // Closes the form without submitting; populate handler resets the
+  // edit-button label on the next user-state refresh.
+  if (btnAcctSettingsEmailCancel && acctSettingsEmailEditForm) {
+    btnAcctSettingsEmailCancel.addEventListener('click', () => {
+      acctSettingsEmailEditForm.classList.remove('open');
+      setAcctSettingsError('');
+      const hasEmail = !!(_hmcCurrentUser && _hmcCurrentUser.email);
+      if (btnAcctSettingsEditEmail) {
+        btnAcctSettingsEditEmail.textContent = hasEmail ? 'Изменить' : 'Добавить';
+      }
       haptic(4);
     });
   }

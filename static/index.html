@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/app.css?v=20260506-phase6d3">
+  <link rel="stylesheet" href="/static/css/app.css?v=20260506-phase6d4">
   <!-- legal-article.css styles the .legal-doc article body (typography,
        spacing, table of contents). Loaded here because the Phase 6d.3
        in-app legal popup injects /privacy and /terms article content
@@ -1141,92 +1141,102 @@
     <div class="acct-settings-sheet-card glass glass--strong" role="dialog" aria-modal="true" aria-label="Настройки аккаунта" id="acctSettingsSheetCard">
       <div class="acct-settings-sheet-handle" aria-hidden="true"></div>
 
+      <!-- Phase 6d.4: full body restructure to the fork-redesign.html
+           aesthetic. page-head + section-titles + glass field-card for
+           email + collapse for password + danger-zone. All new classes
+           prefixed `acct-` and mapped to the existing theme tokens
+           (--bg/--bg2/--t1..t4/--border) so all 4 themes work. The
+           change-password and delete-account control IDs stay so
+           handleChangePassword / handleDeleteAccount keep working
+           without changes. -->
       <div class="acct-settings-sheet-body">
-        <h2 class="acct-settings-sheet-title">Настройки аккаунта</h2>
-        <div class="acct-settings-id-badge" id="acctSettingsIdBadge"></div>
 
-        <!-- Email row — always visible. Phase 6c made the empty state
-             a real first-class entry (no email → "Не задан" + Добавить
-             button), removing the prior 'hidden' attribute. JS swaps
-             the value text, pill visibility, button labels, and which
-             of the two action buttons (Подтвердить / Изменить) is
-             shown based on user.email + user.email_verified. -->
-        <div class="acct-settings-email-row" id="acctSettingsEmailRow">
-          <div class="acct-settings-email-info">
-            <div class="acct-settings-row-label">Email</div>
-            <div class="acct-settings-email-value" id="acctSettingsEmailValue">Не задан</div>
+        <!-- Page header -->
+        <div class="acct-page-head">
+          <h2 class="acct-page-title">Аккаунт</h2>
+          <div class="acct-page-id" id="acctSettingsIdBadge"></div>
+        </div>
+
+        <!-- ── Section: Учётные данные ─────────────────────────── -->
+        <div class="acct-section-title">Учётные данные</div>
+
+        <!-- Email card -->
+        <div class="acct-glass-card acct-field-card" id="acctSettingsEmailRow">
+          <div class="acct-field-row">
+            <div class="acct-field-meta">
+              <div class="acct-field-label">Email</div>
+              <div class="acct-field-value acct-field-value--empty" id="acctSettingsEmailValue">Не задан</div>
+            </div>
+            <span class="acct-pill" id="acctSettingsEmailPill" data-state="unverified">
+              <span class="acct-pill-dot"></span>
+              <span id="acctSettingsEmailPillText">Не подтверждён</span>
+            </span>
           </div>
-          <div class="acct-settings-email-state">
-            <span class="acct-settings-pill" id="acctSettingsEmailPill" data-state="unverified" hidden>Не подтверждён</span>
-            <button class="acct-settings-confirm-btn" id="btnAcctSettingsConfirmEmail" type="button" hidden>Подтвердить</button>
-            <button class="acct-settings-edit-btn" id="btnAcctSettingsEditEmail" type="button">Добавить</button>
+          <div class="acct-field-row acct-field-row--actions">
+            <span class="acct-field-helper" id="acctSettingsEmailHelper">Привяжите email для&nbsp;восстановления доступа</span>
+            <div class="acct-field-action-group">
+              <button class="acct-text-btn acct-text-btn--accent" id="btnAcctSettingsConfirmEmail" type="button" hidden>Подтвердить</button>
+              <button class="acct-text-btn" id="btnAcctSettingsEditEmail" type="button">Добавить</button>
+            </div>
+          </div>
+
+          <!-- Inline edit/add form (collapsible) -->
+          <div class="acct-inline-form" id="acctSettingsEmailEditForm">
+            <div class="acct-inline-form-inner">
+              <input class="acct-input" type="email" id="acctSettingsEmailInput" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="your@email.com">
+              <input class="acct-input" type="password" id="acctSettingsEmailEditPassword" autocomplete="current-password" placeholder="Текущий пароль">
+              <div class="acct-form-helper">Подтверждение придёт на новый email — ссылка действует 24 часа.</div>
+              <div class="acct-form-actions">
+                <button class="acct-btn-primary" id="btnAcctSettingsEmailSave" type="button">Сохранить</button>
+                <button class="acct-btn-ghost" id="btnAcctSettingsEmailCancel" type="button">Отмена</button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Email edit/add inline form (Phase 6c). Reuses the
-             account-advanced-form CSS pattern from the change-password
-             disclosure for consistency. .open class slides it in. -->
-        <div class="account-advanced-form" id="acctSettingsEmailEditForm">
-          <div class="account-advanced-form-inner">
-            <div class="account-pw-field">
-              <input type="email" id="acctSettingsEmailInput" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="Email">
-            </div>
-            <div class="account-pw-field">
-              <input type="password" id="acctSettingsEmailEditPassword" autocomplete="current-password" placeholder="Текущий пароль">
-            </div>
-            <p class="acct-settings-form-hint">Подтверждение придёт на новый email — ссылка действует 24 часа.</p>
-            <button class="account-pw-submit" id="btnAcctSettingsEmailSave" type="button">Сохранить</button>
-          </div>
-        </div>
-
-        <!-- Change password — same IDs as the pre-6a inline disclosure
-             so handleChangePassword in app.js continues to work without
-             modification. -->
-        <button class="account-disclosure" id="btnAccountChangePasswordRow" type="button" aria-expanded="false">
-          <div class="account-disclosure-left">
-            <div class="account-disclosure-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
-                <rect x="3" y="11" width="18" height="11" rx="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        <!-- Password collapse card -->
+        <div class="acct-collapse" id="acctChangePasswordCollapse">
+          <button class="acct-collapse-trigger" id="btnAccountChangePasswordRow" type="button" aria-expanded="false">
+            <span class="acct-collapse-trigger-left">
+              <span class="acct-collapse-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <rect x="5" y="11" width="14" height="9" rx="2"/>
+                  <path d="M8 11V8a4 4 0 018 0v3"/>
+                </svg>
+              </span>
+              Сменить пароль
+            </span>
+            <span class="acct-chevron">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6"/>
               </svg>
+            </span>
+          </button>
+          <div class="acct-collapse-content" id="accountChangePasswordForm">
+            <div class="acct-collapse-content-inner">
+              <div class="acct-collapse-content-pad">
+                <input class="acct-input" type="password" id="accountCurrentPassword" autocomplete="current-password" placeholder="Текущий пароль">
+                <input class="acct-input" type="password" id="accountNewPassword" autocomplete="new-password" minlength="4" maxlength="128" placeholder="Новый пароль (мин 4)">
+                <div class="acct-form-actions">
+                  <button class="acct-btn-primary" id="btnAccountChangePassword" type="button">Сохранить</button>
+                </div>
+              </div>
             </div>
-            <div class="account-disclosure-text">
-              <div class="account-disclosure-title">Сменить пароль</div>
-            </div>
-          </div>
-          <svg class="account-disclosure-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
-            <path d="M9 18l6-6-6-6"/>
-          </svg>
-        </button>
-        <div class="account-advanced-form" id="accountChangePasswordForm">
-          <div class="account-advanced-form-inner">
-            <div class="account-pw-field">
-              <input type="password" id="accountCurrentPassword" autocomplete="current-password" placeholder="Текущий пароль">
-            </div>
-            <div class="account-pw-field">
-              <input type="password" id="accountNewPassword" autocomplete="new-password" minlength="4" maxlength="128" placeholder="Новый пароль (мин 4)">
-            </div>
-            <button class="account-pw-submit" id="btnAccountChangePassword" type="button">Сохранить</button>
           </div>
         </div>
 
         <p class="acct-settings-error" id="acctSettingsError" aria-live="polite"></p>
 
-        <!-- Delete account (red, bottom). Same ID as before. -->
-        <button class="account-disclosure account-disclosure-danger" id="btnAccountDelete" type="button">
-          <div class="account-disclosure-left">
-            <div class="account-disclosure-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              </svg>
-            </div>
-            <div class="account-disclosure-text">
-              <div class="account-disclosure-title">Удалить аккаунт</div>
-            </div>
-          </div>
-        </button>
+        <!-- ── Section: Опасная зона ────────────────────────────── -->
+        <div class="acct-section-title acct-section-title--danger">Опасная зона</div>
+        <div class="acct-danger-zone">
+          <button class="acct-danger-btn" id="btnAccountDelete" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2M6 7l1 13a2 2 0 002 2h6a2 2 0 002-2l1-13"/>
+            </svg>
+            Удалить аккаунт
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1424,7 +1434,7 @@
   <script src="/static/js/spring.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/storage.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/api.js?v=20260505-phase35b-trigger"></script>
-  <script src="/static/js/app.js?v=20260506-phase6d3"></script>
+  <script src="/static/js/app.js?v=20260506-phase6d4"></script>
   <script src="/static/js/cookie-banner.js?v=20260504-1" defer></script>
 </body>
 </html>

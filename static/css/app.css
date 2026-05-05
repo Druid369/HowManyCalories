@@ -7100,134 +7100,19 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   gap: 14px;
 }
 
-.acct-settings-sheet-title {
-  margin: 4px 0 0;
-  font-family: var(--fdisp);
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--t1);
-  letter-spacing: -.5px;
-}
-
-.acct-settings-id-badge {
-  font-family: var(--fmono);
-  font-size: 11px;
-  color: var(--t3);
-  opacity: 0.7;
-  letter-spacing: 0;
-}
-.acct-settings-id-badge:empty { display: none; }
-
-/* ── Email row ────────────────────────────────────────────────────── */
-.acct-settings-email-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
-  background: rgba(198, 183, 155, 0.04);
-  border: 1px solid rgba(198, 183, 155, 0.10);
-  border-radius: 14px;
-}
-.acct-settings-email-row[hidden] { display: none; }
-
-.acct-settings-email-info {
-  min-width: 0;
-  flex: 1;
-}
-.acct-settings-row-label {
-  font-family: var(--fmono);
-  font-size: 11px;
-  color: var(--t3);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 4px;
-}
-.acct-settings-email-value {
-  font-size: 14px;
-  color: var(--t1);
-  word-break: break-all;
-  line-height: 1.3;
-}
-
-.acct-settings-email-state {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.acct-settings-pill {
-  display: inline-flex;
-  align-items: center;
-  font-family: var(--fmono);
-  font-size: 10.5px;
-  letter-spacing: 0.04em;
-  padding: 4px 10px;
-  border-radius: 999px;
-  white-space: nowrap;
-  border: 1px solid transparent;
-}
-.acct-settings-pill[data-state="verified"] {
-  background: rgba(120, 200, 130, 0.14);
-  color: rgb(150, 220, 160);
-  border-color: rgba(120, 200, 130, 0.28);
-}
-.acct-settings-pill[data-state="unverified"] {
-  background: rgba(198, 183, 155, 0.10);
-  color: var(--t3);
-  border-color: rgba(198, 183, 155, 0.18);
-}
-
-.acct-settings-confirm-btn {
-  font-size: 12px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(198, 183, 155, 0.30);
-  background: transparent;
-  color: var(--t1);
-  cursor: pointer;
-  transition: background 160ms ease, border-color 160ms ease;
-}
-.acct-settings-confirm-btn:hover {
-  background: rgba(198, 183, 155, 0.08);
-  border-color: rgba(198, 183, 155, 0.50);
-}
-.acct-settings-confirm-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-.acct-settings-confirm-btn[hidden] { display: none; }
-
-/* Phase 6c: Изменить / Добавить email button — same shape as the
-   confirm-btn but a touch quieter (no border, just a tap-target with
-   subtle text color). Sits beside the pill / confirm-btn. */
-.acct-settings-edit-btn {
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: none;
-  background: transparent;
-  color: var(--t3);
-  cursor: pointer;
-  transition: color 160ms ease, background 160ms ease;
-}
-.acct-settings-edit-btn:hover {
-  color: var(--t1);
-  background: rgba(198, 183, 155, 0.06);
-}
-.acct-settings-edit-btn[hidden] { display: none; }
-
-/* Phase 6c: small hint text inside the email-edit form, sits between
-   the password input and the Сохранить button. */
-.acct-settings-form-hint {
-  margin: 4px 0 0;
-  font-size: 11px;
-  color: var(--t3);
-  opacity: 0.8;
-  line-height: 1.4;
-}
+/* Phase 6d.4: deleted ~110 lines of pre-redesign rules:
+     .acct-settings-sheet-title  (replaced by .acct-page-title)
+     .acct-settings-id-badge     (replaced by .acct-page-id)
+     .acct-settings-email-row    (replaced by .acct-glass-card.acct-field-card)
+     .acct-settings-email-info   (replaced by .acct-field-meta)
+     .acct-settings-row-label    (replaced by .acct-field-label)
+     .acct-settings-email-value  (replaced by .acct-field-value)
+     .acct-settings-email-state  (replaced by .acct-field-action-group)
+     .acct-settings-pill         (replaced by .acct-pill with .acct-pill-dot)
+     .acct-settings-confirm-btn  (replaced by .acct-text-btn--accent)
+     .acct-settings-edit-btn     (replaced by .acct-text-btn)
+     .acct-settings-form-hint    (replaced by .acct-form-helper)
+   Verified zero remaining DOM/CSS references via grep before deletion. */
 
 .acct-settings-error {
   margin: 0;
@@ -7617,4 +7502,392 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
 /* Body scroll-lock while modal is open (matches the /login flow). */
 html.legal-locked, html.legal-locked body {
   overflow: hidden;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   PHASE 6d.4 — Account Settings sub-sheet redesign
+   Adopts the fork-redesign.html aesthetic. All acct-* classes mapped
+   to the project's theme tokens (--bg/--bg2/--t1..t4/--border) so
+   the same CSS works across all four themes. Hardcoded colors are
+   limited to the warn/ok/danger pill+button accents (amber, green,
+   red) which are universal across themes.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Page header ─────────────────────────────────────────────────── */
+.acct-page-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 4px 6px;
+}
+.acct-page-title {
+  margin: 0;
+  font-family: var(--fdisp);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--t1);
+}
+.acct-page-id {
+  font-family: var(--fmono);
+  font-size: 11px;
+  color: var(--t4);
+  letter-spacing: 0.06em;
+}
+.acct-page-id:empty { display: none; }
+
+/* ── Section title (mono small caps) ─────────────────────────────── */
+.acct-section-title {
+  font-family: var(--fmono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--t3);
+  padding: 0 6px 4px;
+  margin-top: 6px;
+}
+.acct-section-title--danger { color: rgba(255, 107, 107, 0.7); }
+
+/* ── Shared glass card surface ───────────────────────────────────── */
+.acct-glass-card {
+  background: linear-gradient(
+    180deg,
+    rgba(var(--t1-rgb, 245, 235, 215), 0.045),
+    rgba(var(--t1-rgb, 245, 235, 215), 0.018)
+  );
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 18px;
+}
+
+/* ── Email card ──────────────────────────────────────────────────── */
+.acct-field-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 0.3s ease;
+}
+.acct-field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.acct-field-row--actions {
+  margin-top: -4px;
+  align-items: flex-start;
+}
+.acct-field-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.acct-field-label {
+  font-family: var(--fmono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+.acct-field-value {
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.acct-field-value--empty {
+  color: var(--t3);
+  font-weight: 400;
+}
+.acct-field-helper {
+  font-size: 12px;
+  color: var(--t3);
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+}
+.acct-field-helper:empty { display: none; }
+.acct-field-action-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Pill (with dot) ─────────────────────────────────────────────── */
+.acct-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-family: var(--fmono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border);
+  background: rgba(var(--t1-rgb, 245, 235, 215), 0.04);
+  color: var(--t3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.acct-pill-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.acct-pill[data-state="unverified"] {
+  color: rgb(255, 184, 107);
+  border-color: rgba(255, 184, 107, 0.25);
+  background: rgba(255, 184, 107, 0.06);
+}
+.acct-pill[data-state="verified"] {
+  color: rgb(109, 217, 158);
+  border-color: rgba(109, 217, 158, 0.25);
+  background: rgba(109, 217, 158, 0.06);
+}
+
+/* ── Text button (Изменить / Добавить / Подтвердить) ─────────────── */
+.acct-text-btn {
+  background: none;
+  border: none;
+  color: var(--t1);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--t4);
+  transition: border-color 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+.acct-text-btn:hover {
+  border-bottom-color: var(--t1);
+}
+.acct-text-btn--accent {
+  color: rgb(255, 184, 107);
+  border-bottom-color: rgba(255, 184, 107, 0.4);
+}
+.acct-text-btn--accent:hover {
+  border-bottom-color: rgb(255, 184, 107);
+}
+.acct-text-btn[hidden] { display: none; }
+
+/* ── Inline form (collapsible — grid-template-rows trick) ────────── */
+.acct-inline-form {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition:
+    grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s,
+    margin 0.3s;
+  opacity: 0;
+  margin-top: 0;
+}
+.acct-inline-form.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 4px;
+}
+.acct-inline-form-inner {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.acct-input {
+  width: 100%;
+  height: 50px;
+  padding: 0 18px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--t1);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.acct-input::placeholder { color: var(--t4); }
+.acct-input:focus {
+  border-color: rgba(var(--t1-rgb, 245, 235, 215), 0.35);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.acct-form-helper {
+  font-size: 12px;
+  color: var(--t3);
+  line-height: 1.45;
+  padding: 2px 4px;
+}
+.acct-form-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.acct-btn-primary {
+  height: 44px;
+  padding: 0 22px;
+  background: var(--t1);
+  color: var(--bg);
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.15s ease;
+}
+.acct-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px -8px rgba(var(--t1-rgb, 245, 235, 215), 0.35);
+}
+.acct-btn-primary:active { transform: translateY(0); }
+.acct-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.acct-btn-ghost {
+  height: 44px;
+  padding: 0 18px;
+  background: transparent;
+  color: var(--t3);
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.acct-btn-ghost:hover { color: var(--t1); }
+
+/* ── Collapse (password section) ─────────────────────────────────── */
+.acct-collapse {
+  margin-top: 4px;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--t1-rgb, 245, 235, 215), 0.045),
+    rgba(var(--t1-rgb, 245, 235, 215), 0.018)
+  );
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: border-color 0.3s ease;
+}
+.acct-collapse.open {
+  border-color: rgba(var(--t1-rgb, 245, 235, 215), 0.18);
+}
+.acct-collapse-trigger {
+  width: 100%;
+  padding: 18px 22px;
+  background: none;
+  border: none;
+  color: var(--t1);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+}
+.acct-collapse-trigger-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.acct-collapse-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(var(--t1-rgb, 245, 235, 215), 0.06);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  color: var(--t3);
+  flex-shrink: 0;
+}
+.acct-collapse-icon svg { width: 14px; height: 14px; }
+.acct-chevron {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--t3);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s;
+}
+.acct-collapse.open .acct-chevron {
+  transform: rotate(180deg);
+  color: var(--t1);
+}
+.acct-chevron svg { width: 12px; height: 12px; }
+.acct-collapse-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.acct-collapse.open .acct-collapse-content { grid-template-rows: 1fr; }
+.acct-collapse-content-inner {
+  overflow: hidden;
+  padding: 0 22px;
+  min-height: 0;
+}
+.acct-collapse-content-pad {
+  padding: 4px 0 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Danger zone ─────────────────────────────────────────────────── */
+.acct-danger-zone {
+  padding: 0 4px;
+  margin-top: 2px;
+}
+.acct-danger-btn {
+  width: 100%;
+  height: 56px;
+  background: transparent;
+  border: 1px dashed rgba(255, 107, 107, 0.25);
+  border-radius: 14px;
+  color: rgb(255, 107, 107);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.25s ease, border-color 0.25s ease, border-style 0.25s ease;
+}
+.acct-danger-btn:hover {
+  background: rgba(255, 107, 107, 0.08);
+  border-style: solid;
+  border-color: rgba(255, 107, 107, 0.4);
+}
+.acct-danger-btn svg { width: 14px; height: 14px; }
+
+/* Body layout adjustments to use the new vertical rhythm. */
+.acct-settings-sheet-body {
+  gap: 14px;
+  padding: 14px 18px 28px;
+}
+.acct-settings-sheet-body .acct-settings-error {
+  margin: -4px 0 0;
 }
