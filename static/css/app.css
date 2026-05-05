@@ -4135,70 +4135,13 @@ html {
    Polished card-on-card visual: slightly elevated background within
    the advanced body, with a subtle inset glow on focus. Compact
    inputs (32px tall) + tight gaps fit ~140px total. */
-.account-advanced-form {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height .28s cubic-bezier(.4, 0, .2, 1), padding .28s ease, opacity .2s ease;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 14px;
-  border-bottom: 1px solid transparent;
-  opacity: 0;
-}
-.account-advanced-form.open {
-  max-height: 160px;
-  padding: 10px 14px 12px;
-  border-bottom-color: var(--border);
-  opacity: 1;
-}
-.account-pw-field {
-  display: flex;
-}
-.account-pw-field input[type="password"] {
-  width: 100%;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  padding: 9px 12px;
-  font-family: var(--fbody); font-size: 13px;
-  color: var(--t1);
-  outline: none;
-  -webkit-appearance: none; appearance: none;
-  /* Transition is now scoped under .account-advanced-form.open at
-     line 4589 so it only kicks in after the form has finished its
-     entrance — prevents a focus/background flicker on first open. */
-}
-.account-pw-field input[type="password"]::placeholder {
-  /* Ghost-faded — clearly a hint, not pre-filled text. Cream tone
-     at very low opacity reads as "this slot is empty". */
-  color: rgba(var(--t1-rgb), .22);
-  font-weight: 400;
-  letter-spacing: .2px;
-}
-.account-pw-field input[type="password"]:focus {
-  border-color: rgba(var(--green-rgb),.55);
-  background: var(--bg3);
-  box-shadow: 0 0 0 2px var(--green-dim);
-}
-.account-pw-submit {
-  align-self: stretch;
-  padding: 9px 12px;
-  border-radius: var(--r-sm);
-  background: var(--green-br);
-  border: 1px solid var(--green-br);
-  color: var(--bg);
-  font-family: var(--fdisp);
-  font-size: 12px; font-weight: 700;
-  letter-spacing: .3px;
-  cursor: pointer;
-  transition: filter .15s, transform .15s;
-  margin-top: 2px;
-}
-.account-pw-submit:hover  { filter: brightness(1.06); }
-.account-pw-submit:active { transform: scale(.98); }
-.account-pw-submit:disabled { opacity: .55; cursor: default; filter: none; transform: none; }
+/* Phase 6d cleanup: deleted ~65 lines of base
+   .account-advanced-form + .account-pw-field + .account-pw-submit
+   rules. These were used by the original Phase 1 change-password
+   disclosure inside the Дополнительно card; that disclosure was
+   moved into the Account Settings sub-sheet in Phase 6a, then
+   replaced entirely with .acct-collapse + .acct-input + .acct-btn-primary
+   in Phase 6d.4. Verified zero remaining DOM/JS refs via grep. */
 
 .account-sheet-error {
   font-size: 13px; color: var(--error);
@@ -4411,146 +4354,13 @@ html {
    number rendered in the stage. */
 .account-card .account-metric-neighbor { display: none; }
 
-/* Change-password form inside the disclosure — smooth expand/
-   collapse via grid-template-rows 0fr → 1fr on the outer wrapper.
-   Compositor-friendly content-fit growth replaces the old max-height
-   + padding double-reflow transition. Inner <div> carries the flex-
-   column layout + padding so the children stack as before; min-height:0
-   + overflow:hidden lets it collapse cleanly when parent is 0fr. */
-.account-card .account-advanced-form {
-  display: grid;
-  grid-template-rows: 0fr;
-  /* Neutralize leaking legacy max-height/padding rules at line 4271
-     so the grid conversion isn't fought by the dead-but-still-cascading
-     base block. overflow: hidden is required here (not just on the
-     inner) so the cascade can't try to animate a max-height it sees
-     on the legacy rule's transition list. */
-  max-height: none;
-  padding: 0;
-  overflow: hidden;
-  background: transparent;
-  border-bottom: none;
-  opacity: 0;
-  /* Explicit transition list — explicitly DOES NOT include max-height
-     or padding, so legacy rule's transition definition can't cause a
-     phantom double-animation when .open fires. */
-  transition:
-    grid-template-rows .42s cubic-bezier(.22, 1, .36, 1),
-    opacity .28s ease;
-  /* Browser-hint the GPU layer so the first frame of the reveal doesn't
-     stutter on layer creation, and isolate paint so the form's repaint
-     can't invalidate the surrounding card. */
-  will-change: grid-template-rows;
-  contain: layout paint;
-}
-.account-card .account-advanced-form.open {
-  grid-template-rows: 1fr;
-  max-height: none;
-  opacity: 1;
-}
-/* Input transitions kick in only AFTER the form is open and stable.
-   On first open, inputs going from a 0fr-collapsed parent to visible
-   would fire their box-shadow/background transitions from their zero
-   initial state, producing a ~150ms flicker right after the grid
-   finishes growing. Scoping under .open eliminates that. */
-.account-card .account-advanced-form.open .account-pw-field input {
-  transition: border-color .15s, box-shadow .15s, background .15s;
-}
-.account-card .account-advanced-form .account-advanced-form-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 4px 14px;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* Inputs — inset neumorphic capsule, full width.
-   .account-pw-field is the wrapper; the actual <input> is nested. */
-.account-card .account-pw-field {
-  background: var(--bg);
-  border-radius: 14px;
-  padding: 12px 16px;
-  box-shadow: var(--account-shadow-in-sm);
-  border: none;
-}
-.account-card .account-pw-field input,
-.account-card .account-pw-field input[type="password"] {
-  width: 100%;
-  border: none;
-  background: transparent;
-  font-family: var(--fbody);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--t1);
-  outline: none;
-  letter-spacing: -.01em;
-  padding: 0;
-  box-shadow: none;
-}
-.account-card .account-pw-field input::placeholder,
-.account-card .account-pw-field input[type="password"]::placeholder {
-  color: var(--t4);
-  font-weight: 400;
-}
-.account-card .account-pw-field input:focus,
-.account-card .account-pw-field input[type="password"]:focus {
-  background: transparent;
-  box-shadow: none;
-}
-.account-card .account-pw-field:focus-within {
-  box-shadow:
-    var(--account-shadow-in-sm),
-    0 0 0 2px var(--green-glow);
-}
-
-/* Submit button — humble outline pill on neutral bg. The previous
-   bright filled-amber pill competed with the main Save button in the
-   action strip; now this reads as "secondary commit inside a form"
-   rather than "primary CTA". Hover deepens to filled accent. */
-.account-card .account-pw-submit {
-  align-self: stretch;
-  background: var(--bg);
-  border: 1px solid rgba(var(--green-rgb), .28);
-  border-radius: 14px;
-  padding: 11px 16px;
-  font-family: var(--fdisp);
-  font-size: 13.5px;
-  font-weight: 600;
-  letter-spacing: .1px;
-  color: var(--green-br);
-  cursor: pointer;
-  transition:
-    background .2s ease,
-    border-color .2s ease,
-    color .2s ease,
-    box-shadow .25s ease,
-    transform .2s cubic-bezier(.34, 1.4, .54, 1);
-  box-shadow: var(--account-shadow-out-sm);
-}
-.account-card .account-pw-submit:hover {
-  background: rgba(var(--green-rgb), .08);
-  border-color: rgba(var(--green-rgb), .42);
-  color: var(--green-br);
-}
-.account-card .account-pw-submit:active {
-  transform: scale(.97);
-  box-shadow: var(--account-shadow-in-sm);
-}
-
-/* Override the old .pw-form-open inner-scroll rule — with the new
-   .account-scroll wrapping all cards, the inner scroll handles
-   overflow naturally. CRITICALLY: do NOT set max-height: none here.
-   The previous override grew the sheet upward whenever the password
-   drawer opened (since bottom is anchored, growth goes UP) — exactly
-   the "tab moves up" complaint. Now the sheet stays capped, the
-   form expands inside the existing scroll, and on close the sheet
-   doesn't snap-shrink (no scroll-position teleport). */
-.account-sheet-content.pw-form-open {
-  overflow: hidden;
-  /* max-height inherited from base — DO NOT override */
-}
-.account-sheet-content.pw-form-open::after { display: none; }
+/* Phase 6d cleanup: deleted ~140 lines of cascading rules that were
+   specificity-overrides on .account-card .account-advanced-form,
+   .account-card .account-pw-field, .account-card .account-pw-submit,
+   and .account-sheet-content.pw-form-open. None of those classes
+   exist in the DOM anymore (replaced by the .acct-collapse / .acct-input
+   / .acct-btn-primary structure in Phase 6d.4 + the .pw-form-open
+   class application removed in Phase 6d.2). Verified zero refs. */
 
 /* Drag grip — slim, centered. */
 .account-grip {
@@ -5119,12 +4929,10 @@ html {
   transform: rotate(90deg);
 }
 
-.account-disclosure-danger .account-disclosure-icon {
-  color: var(--error);
-}
-.account-disclosure-danger .account-disclosure-title {
-  color: var(--error);
-}
+/* Phase 6d cleanup: deleted .account-disclosure-danger rules.
+   The danger-styled disclosure was the old Удалить аккаунт button;
+   replaced by .acct-danger-btn (dashed-border red button) in
+   Phase 6d.4. Verified zero DOM refs. */
 
 /* Theme drawer — collapsible inside Advanced.
    Animates via grid-template-rows 0fr → 1fr on the OUTER wrapper
