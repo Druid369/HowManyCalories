@@ -4748,6 +4748,21 @@ html {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Humble account number — same monospace family + muted tone as the
+   handle, sized half a notch smaller and dropped to 0.7 opacity so it
+   reads as metadata, not identity. Empty contents collapse the line. */
+.account-id-badge {
+  font-family: var(--fmono);
+  font-size: 11px;
+  color: var(--t3);
+  opacity: 0.7;
+  letter-spacing: 0;
+  line-height: 1.2;
+  margin-top: 2px;
+}
+.account-id-badge:empty {
+  display: none;
+}
 .account-identity-actions {
   display: flex;
   flex-direction: column;

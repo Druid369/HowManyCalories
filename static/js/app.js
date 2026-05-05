@@ -2920,6 +2920,7 @@ const accountAvatarInput      = $('accountAvatarInput');
 const accountAvatarImg        = $('accountAvatarImg');
 const accountAvatarPlaceholder = document.querySelector('.account-avatar-placeholder');
 const accountUsernameLabel    = $('accountUsernameLabel');
+const accountIdBadge          = $('accountIdBadge');
 const accountDisplayName      = $('accountDisplayName');
 const accountIdentityName     = $('accountIdentityName');     // display name shown in identity hero
 const accountSheetError       = $('accountSheetError');
@@ -3780,7 +3781,8 @@ function ensureAccountWheels() {
 
 function populateAccountForm(user) {
   if (!user) return;
-  if (accountUsernameLabel) accountUsernameLabel.textContent = '@' + (user.username || '');
+  if (accountUsernameLabel) accountUsernameLabel.textContent = user.username || '';
+  if (accountIdBadge)       accountIdBadge.textContent = user.id ? '#' + String(user.id).padStart(6, '0') : '';
   if (accountDisplayName)   accountDisplayName.value = user.display_name || '';
   // Identity hero name mirror — populated from the same source as the
   // input below it. Empty → fallback so the hero never shows blank.
@@ -4105,7 +4107,7 @@ function cancelAccountChanges() {
   // scanner just for backing out of an edit.
   if (_accountInitial) {
     const fakeUser = {
-      username: accountUsernameLabel ? accountUsernameLabel.textContent.replace(/^@/, '') : '',
+      username: accountUsernameLabel ? accountUsernameLabel.textContent : '',
       ..._accountInitial,
     };
     populateAccountForm(fakeUser);
