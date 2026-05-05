@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from pydantic import ValidationError
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter, _rate_limit_exceeded_handler as _slowapi_rl_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
@@ -283,6 +283,19 @@ async def _require_admin_user(request: Request) -> dict:
 
 
 limiter = Limiter(key_func=get_remote_address)
+
+
+def _rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    """Log every 429 with structured fields, then defer to the default
+    slowapi response. Without this, rate-limit hits are invisible to ops
+    and we can't tell whether a sustained probe is hitting throttle or
+    succeeding."""
+    logger.warning("rate_limit_hit", extra={
+        "path":   request.url.path,
+        "method": request.method,
+        "ip":     get_remote_address(request),
+    })
+    return _slowapi_rl_handler(request, exc)
 app = FastAPI(title="HowManyCalories", version="0.1.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
