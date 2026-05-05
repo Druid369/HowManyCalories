@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1A1714">
+  <title>FORK — Сброс пароля</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- Reuses /login styling for visual consistency between sibling
+       auth pages. Any login-mode-only rules ([data-mode="login"])
+       won't apply here because resetTile uses data-mode="reset". -->
+  <link rel="stylesheet" href="/static/login/style.css?v=20260505-phase37">
+  <link rel="stylesheet" href="/static/reset/style.css?v=20260505-phase37">
+</head>
+<body>
+
+  <div class="auth-bg-base"></div>
+  <div class="auth-bg-glow"></div>
+  <div class="auth-bg-grain"></div>
+
+  <main class="auth-shell">
+
+    <header class="auth-header">
+      <div class="logo">
+        <svg class="logo-mark" viewBox="0 0 78 32" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="fork">
+          <path d="M 17 5 Q 12 5 12 8.5 L 12 28"/>
+          <path d="M 5 14 L 18 14"/>
+          <circle cx="30" cy="19" r="9"/>
+          <path d="M 44 28 L 44 12 Q 44 9.5 47 9.5 Q 52 9.5 54 13"/>
+          <path d="M 60 5 L 60 28"/>
+          <path d="M 60 20 L 72 12"/>
+          <path d="M 60 20 L 72 28"/>
+        </svg>
+        <span class="logo-dot"></span>
+        <span class="logo-name">FORK</span>
+      </div>
+    </header>
+
+    <section class="auth-tile" data-mode="reset" id="resetTile">
+
+      <!-- Form mode — visible when token is present in URL. -->
+      <div class="reset-form-block" id="resetFormBlock">
+        <h1 class="auth-title">Новый пароль</h1>
+        <p class="auth-subtitle">Введите новый пароль для аккаунта.</p>
+
+        <form class="auth-form" id="resetForm" autocomplete="on" novalidate>
+          <div class="auth-field">
+            <label for="resetPassword">Новый пароль</label>
+            <input type="password" id="resetPassword" name="password" required minlength="4" maxlength="128" autocomplete="new-password">
+            <p class="auth-field-hint">минимум 4 символа</p>
+          </div>
+          <div class="auth-field">
+            <label for="resetPasswordConfirm">Повторите пароль</label>
+            <input type="password" id="resetPasswordConfirm" required minlength="4" maxlength="128" autocomplete="new-password">
+          </div>
+
+          <p class="auth-error" id="resetError" aria-live="polite"></p>
+
+          <button class="auth-submit" id="resetSubmit" type="submit">
+            <span class="auth-submit-label">Сохранить пароль</span>
+            <span class="auth-submit-spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+
+        <a href="/login" class="auth-back-link">← Войти</a>
+      </div>
+
+      <!-- Error mode — shown when token is missing/invalid OR when
+           the server rejects the token (410). Replaces the form
+           entirely. JS toggles the .invalid class on the tile. -->
+      <div class="reset-invalid-block" id="resetInvalidBlock">
+        <h1 class="auth-title">Ссылка устарела</h1>
+        <p class="auth-subtitle">Эта ссылка истекла или уже использована. Запросите новую через «Забыли пароль?» на странице входа.</p>
+        <a href="/login" class="auth-submit reset-invalid-cta" id="resetInvalidCTA">
+          <span class="auth-submit-label">Перейти ко входу</span>
+        </a>
+      </div>
+
+    </section>
+
+    <div class="auth-bottom">
+      <footer class="auth-tagline">
+        Сканируй еду · Считай калории · Никаких лишних вопросов
+      </footer>
+    </div>
+
+  </main>
+
+  <script src="/static/reset/script.js?v=20260505-phase37"></script>
+</body>
+</html>

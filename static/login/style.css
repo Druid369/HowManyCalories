@@ -94,9 +94,38 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: max(28px, env(safe-area-inset-top, 0px) + 18px) 22px max(20px, env(safe-area-inset-bottom, 0px) + 14px);
+  /* The tile is the ONLY flex item now — header and bottom block are
+     position: absolute below, pinned to top + bottom of the shell.
+     This means justify-content: center perfectly centres the tile
+     in the viewport, and when register mode expands the consent box
+     the tile grows symmetrically about its centre (both edges move
+     outward by equal amounts) instead of growing only downward.
+     Side padding is kept for the tile; vertical padding is now
+     mostly handled by the absolute header/bottom offsets. */
+  justify-content: center;
+  padding: 0 22px;
   min-height: 100%;
+}
+/* Header — pinned to top of shell, out of flex flow. */
+.auth-header {
+  position: absolute;
+  top: max(22px, env(safe-area-inset-top, 0px) + 14px);
+  left: 22px;
+  right: 22px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+/* Bottom block (tagline + legal) — pinned to bottom of shell. */
+.auth-bottom {
+  position: absolute;
+  bottom: max(18px, env(safe-area-inset-bottom, 0px) + 14px);
+  left: 22px;
+  right: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
 /* ── Header / wordmark ──────────────────────────────────────────── */
@@ -124,8 +153,15 @@ body {
 .auth-tile {
   position: relative;
   width: 100%;
-  max-width: 420px;
-  padding: 28px 24px 24px;
+  /* Tighter max-width on phones (was 420px) so the tile reads as a
+     focused card rather than near-edge-to-edge. Desktop and large
+     tablets unaffected — the viewport is wider than this anyway. */
+  max-width: 360px;
+  /* Compacted vertical rhythm — every section trimmed by 2-4px so the
+     tile reads tighter without feeling cramped. The consent block in
+     register mode is what previously made the tile feel oversized;
+     trimming everywhere balances the register/login height delta. */
+  padding: 20px 20px 18px;
   border-radius: var(--r-xl);
   /* Liquid glass tile — same recipe family as the in-app overlays so
      this is the user's first taste of the design system. The blur
@@ -210,19 +246,15 @@ body {
 
 .auth-title {
   font-family: var(--fdisp);
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -.5px;
   color: var(--t1);
-  margin-bottom: 6px;
+  margin-bottom: 14px;
 }
-.auth-subtitle {
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--t2);
-  line-height: 1.45;
-  margin-bottom: 22px;
-}
+/* Subtitle removed — the form itself communicates what to do. Rules
+   surface contextually via .auth-field-hint when the user actually
+   focuses an input. */
 
 /* ── Tabs ───────────────────────────────────────────────────────── */
 .auth-tabs {
@@ -232,7 +264,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--r-max);
   padding: 4px;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 .auth-tab {
   flex: 1;
@@ -240,7 +272,7 @@ body {
   z-index: 2;
   background: transparent;
   border: none;
-  padding: 9px 0;
+  padding: 8px 0;
   color: var(--t2);
   font-family: var(--fbody);
   font-size: 13px;
@@ -267,11 +299,11 @@ body {
 /* ── Form fields ────────────────────────────────────────────────── */
 .auth-form {
   display: flex; flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 .auth-field {
   display: flex; flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 .auth-field label {
   font-family: var(--fmono);
@@ -285,7 +317,7 @@ body {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 13px 14px;
+  padding: 11px 14px;
   font-family: var(--fbody);
   font-size: 15px;
   color: var(--t1);
@@ -302,45 +334,249 @@ body {
   background: rgba(26,23,20,.7);
   box-shadow: 0 0 0 3px rgba(201,148,58,.10);
 }
+/* Soft gold accent on a fully-valid input even without focus — a
+   quiet confirmation that the value passes the field's rules
+   (matches the pattern + min length). Native :valid only fires on
+   non-empty values when `required` is set, so this never lights an
+   empty field. */
+.auth-field input:valid {
+  border-color: rgba(201,148,58,.22);
+}
+.auth-field input:valid:focus {
+  border-color: rgba(201,148,58,.55);
+}
+
+/* Field hint — small caption below an input. Uses :focus-within on
+   the parent so it follows the field's interaction state, and the
+   `input:valid ~ .auth-field-hint` rule auto-collapses it once the
+   value passes validation. No JS needed. */
+.auth-field-hint {
+  font-family: var(--fmono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: .8px;
+  color: var(--t3);
+  text-transform: lowercase;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 240ms cubic-bezier(.4,0,.2,1),
+              opacity   200ms ease,
+              margin-top 240ms ease;
+}
+.auth-field:focus-within .auth-field-hint {
+  max-height: 18px;
+  opacity: 1;
+  margin-top: 6px;
+}
+.auth-field:focus-within input:valid ~ .auth-field-hint {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+
+/* ── Consent checkbox (Phase 1 — 152-ФЗ) ──────────────────────────
+   Wrapper uses a CSS-grid trick to animate height: a 0fr → 1fr
+   row template smoothly resizes the inner content. Combined with
+   overflow: hidden on the inner cell, this gives a buttery
+   expand/collapse on mode switch instead of a jump. The native
+   checkbox is hidden via sr-only-style positioning so we can paint
+   a custom mark that matches the warm-dark aesthetic; clicking the
+   label toggles the input as usual. */
+.auth-consent-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  /* Single-property transition keeps it cheap; the easing matches
+     the tab indicator slide so all motion in this view feels uniform. */
+  transition: grid-template-rows 360ms cubic-bezier(.34, 1.10, .64, 1),
+              margin-top         360ms cubic-bezier(.34, 1.10, .64, 1);
+  margin-top: 0;
+}
+.auth-consent-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.auth-tile[data-mode="register"] .auth-consent-wrap {
+  grid-template-rows: 1fr;
+  /* Tight margin — the form's natural flex gap (12px) above the
+     consent-wrap already separates it from the password field;
+     this margin only adds a touch more breathing room. Was 14→10→6
+     across iterations as the tile shrank. */
+  margin-top: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-consent-wrap { transition: none; }
+}
+
+.auth-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(201,148,58, 0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: border-color 200ms ease, background 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.auth-consent:hover {
+  border-color: rgba(201,148,58,.30);
+}
+
+.auth-consent-input {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.auth-consent-mark {
+  flex: 0 0 18px;
+  width: 18px; height: 18px;
+  margin-top: 1px;
+  border: 1.5px solid var(--t3);
+  border-radius: 4px;
+  background: var(--bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.auth-consent-mark svg {
+  width: 12px; height: 12px;
+  opacity: 0;
+  transform: scale(.6);
+  transition: opacity 140ms ease, transform 200ms cubic-bezier(.4,0,.2,1);
+}
+.auth-consent-input:checked ~ .auth-consent-mark {
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-br) 100%);
+  border-color: var(--green-br);
+  color: #1A1410;
+}
+.auth-consent-input:checked ~ .auth-consent-mark svg {
+  opacity: 1;
+  transform: scale(1);
+}
+.auth-consent-input:focus-visible ~ .auth-consent-mark {
+  box-shadow: 0 0 0 3px rgba(201,148,58,.18);
+  border-color: rgba(201,148,58,.6);
+}
+
+.auth-consent-text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--t2);
+  flex: 1;
+  user-select: none;
+}
+.auth-consent-text a {
+  color: var(--green-br);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 200ms ease;
+}
+.auth-consent-text a:hover {
+  border-bottom-color: var(--green-br);
+}
+
+/* Subtle pulse to draw attention if the user tried to submit without
+   ticking the box — JS adds .nudge for ~600ms then removes it. */
+.auth-consent.nudge {
+  animation: consent-nudge 460ms cubic-bezier(.4, 0, .2, 1);
+  border-color: rgba(216,97,60,.55);
+}
+@keyframes consent-nudge {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-consent.nudge { animation: none; }
+}
 
 /* ── Error line ─────────────────────────────────────────────────── */
 .auth-error {
-  min-height: 18px;
+  /* Collapses to zero height when not visible — previously reserved
+     18px + 4px margin even with no error, which created a stale gap
+     between the consent box and the submit button. Now the line takes
+     up no vertical space until an error fires, then expands smoothly
+     into view. The flex gap above and below still provides breathing
+     room when the error is shown. */
   font-size: 13px;
   font-weight: 500;
   color: var(--error);
-  margin-top: 4px;
+  max-height: 0;
+  margin-top: 0;
   opacity: 0;
-  transition: opacity 200ms ease;
+  overflow: hidden;
+  transition: max-height 220ms cubic-bezier(.4, 0, .2, 1),
+              margin-top 220ms cubic-bezier(.4, 0, .2, 1),
+              opacity    180ms ease;
 }
-.auth-error.visible { opacity: 1; }
+.auth-error.visible {
+  max-height: 32px;
+  margin-top: 2px;
+  opacity: 1;
+}
 
 /* ── Submit button ──────────────────────────────────────────────── */
+/* Gating model: default state is desaturated + dim, with no shadow
+   and pointer-events disabled. JS adds .ready to the form when every
+   field passes its rules (and consent is checked in register mode).
+   The .ready class smoothly transitions the button to its full warm
+   gold + lifted shadow, signalling "you can submit now". The
+   transition is what the user described as "lights up" — it's the
+   button confirming readiness, not just a flat enable/disable flip. */
 .auth-submit {
   position: relative;
   width: 100%;
   background: linear-gradient(135deg, var(--green) 0%, var(--green-br) 100%);
   border: none;
   border-radius: var(--r-md);
-  padding: 14px 18px;
+  padding: 10px 18px;
   font-family: var(--fbody);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: .3px;
   color: #1A1410;
-  cursor: pointer;
-  margin-top: 6px;
-  transition: transform 150ms ease, box-shadow 200ms ease, opacity 200ms ease;
+  cursor: not-allowed;
+  margin-top: 0;
+  /* Default: dimmed, desaturated, sitting flat. Transitions into the
+     .ready state ~360ms — slow enough to feel like a deliberate
+     reveal, fast enough to not feel sluggish on every keystroke. */
+  opacity: .42;
+  filter: saturate(.35) brightness(.82);
+  box-shadow: none;
+  pointer-events: none;
+  transition:
+    opacity      360ms cubic-bezier(.4, 0, .2, 1),
+    filter       360ms cubic-bezier(.4, 0, .2, 1),
+    box-shadow   320ms ease,
+    transform    150ms ease;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: 0 2px 12px rgba(201,148,58,.25);
   overflow: hidden;
 }
-.auth-submit:hover  { box-shadow: 0 4px 18px rgba(201,148,58,.35); }
-.auth-submit:active { transform: scale(.98); }
+.auth-form.ready .auth-submit {
+  opacity: 1;
+  filter: saturate(1) brightness(1);
+  box-shadow: 0 2px 12px rgba(201,148,58,.25);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.auth-form.ready .auth-submit:hover  { box-shadow: 0 4px 18px rgba(201,148,58,.35); }
+.auth-form.ready .auth-submit:active { transform: scale(.98); }
 .auth-submit:disabled {
-  opacity: .55;
-  cursor: not-allowed;
-  transform: none;
+  /* Loading state — JS sets disabled while the request is in flight.
+     Keep the lit appearance (we don't want the button to "lock down"
+     while showing a spinner) but block input. */
+  cursor: wait;
 }
 .auth-submit-spinner {
   position: absolute;
@@ -360,21 +596,10 @@ body {
 }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* ── Toggle hint ────────────────────────────────────────────────── */
-.auth-toggle-hint {
-  text-align: center;
-  font-size: 13px;
-  color: var(--t2);
-  margin-top: 18px;
-}
-.auth-toggle-hint a {
-  color: var(--green-br);
-  text-decoration: none;
-  font-weight: 600;
-  border-bottom: 1px solid transparent;
-  transition: border-color 200ms ease;
-}
-.auth-toggle-hint a:hover { border-bottom-color: var(--green-br); }
+/* Toggle-hint styles removed alongside the markup — the tabs at the
+   top of the tile already handle login ↔ register switching, and the
+   redundant footer row was pushing the legal links off-screen in
+   register mode. */
 
 /* ── Tagline ────────────────────────────────────────────────────── */
 .auth-tagline {
@@ -389,13 +614,267 @@ body {
   opacity: .7;
 }
 
+/* ── Legal footer (Phase 1 — 152-ФЗ) ────────────────────────────── */
+.auth-legal {
+  text-align: center;
+  font-size: 12px;
+  color: var(--t3);
+  margin: 10px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: .82;
+}
+.auth-legal a {
+  color: var(--t2);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 200ms ease, border-color 200ms ease;
+}
+.auth-legal a:hover {
+  color: var(--t1);
+  border-bottom-color: rgba(168, 154, 134, .3);
+}
+.auth-legal span { color: var(--t4); }
+
 /* ── Compact viewport ───────────────────────────────────────────── */
 @media (max-height: 640px) {
-  .auth-shell { padding-top: 18px; padding-bottom: 12px; }
-  .auth-tile { padding: 22px 22px 20px; }
-  .auth-title { font-size: 22px; }
-  .auth-subtitle { margin-bottom: 16px; }
-  .auth-tabs { margin-bottom: 16px; }
-  .auth-form { gap: 12px; }
+  /* Tighter offsets for short viewports so the tile has room. The
+     shell itself uses justify-content: center already, so the only
+     thing to adjust is the absolute header/bottom positions. */
+  .auth-header { top: 14px; }
+  .auth-bottom { bottom: 12px; }
+  .auth-tile   { padding: 20px 20px 18px; }
+  .auth-title  { font-size: 22px; margin-bottom: 14px; }
+  .auth-tabs   { margin-bottom: 16px; }
+  .auth-form   { gap: 12px; }
   .auth-tagline { display: none; }
+  /* Legal stays — it's the legally-mandated link. Tagline is decorative. */
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Legal modal (Phase 1 polish — replaces target=_blank navigation)
+
+   Slide-up bottom sheet showing /privacy?embed=1 or /terms?embed=1
+   in an iframe. The legal pages already render the canonical content
+   beautifully; iframing them keeps a single source of truth without
+   duplicating the policy text. The ?embed=1 query suppresses the
+   page's own back button and footer so the modal frame is the only
+   chrome the user sees.
+   ════════════════════════════════════════════════════════════════════ */
+.legal-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  /* Hidden state by default — JS adds .visible to mount + animate. */
+}
+.legal-modal.visible { pointer-events: auto; }
+
+.legal-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  opacity: 0;
+  transition: opacity 280ms ease;
+  -webkit-backdrop-filter: blur(2px);
+          backdrop-filter: blur(2px);
+}
+.legal-modal.visible .legal-modal-backdrop { opacity: 1; }
+
+.legal-modal-sheet {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 100%;
+  max-width: 720px;
+  height: 92vh;
+  /* Round only top corners — looks like a sheet rising from below.
+     On desktop the centered max-width keeps it from spanning silly
+     wide on huge screens. */
+  border-radius: 22px 22px 0 0;
+  background: var(--bg2);
+  box-shadow:
+    0 -10px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(198, 183, 155, 0.10);
+  transform: translate(-50%, 100%);
+  transition: transform 380ms cubic-bezier(.4, 0, .2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.legal-modal.visible .legal-modal-sheet {
+  transform: translate(-50%, 0);
+}
+
+/* Drag-handle pill at the top centre — visual cue this is a sheet. */
+.legal-modal-handle {
+  width: 40px;
+  height: 4px;
+  margin: 9px auto 0;
+  border-radius: 999px;
+  background: rgba(198, 183, 155, 0.22);
+  flex-shrink: 0;
+}
+
+.legal-modal-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--t2);
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 160ms ease, color 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 1;
+}
+.legal-modal-close:hover {
+  background: rgba(198, 183, 155, 0.10);
+  color: var(--t1);
+}
+.legal-modal-close svg { width: 18px; height: 18px; }
+
+/* Iframe + fallback CSS removed — content is now fetched + injected
+   into #legalModalContent (see /static/css/legal-article.css for the
+   article-body styles, scoped under .legal-modal-content). */
+
+@media (prefers-reduced-motion: reduce) {
+  .legal-modal-sheet,
+  .legal-modal-backdrop {
+    transition: opacity 180ms ease;
+  }
+  .legal-modal-sheet { transform: translate(-50%, 0); }
+}
+
+/* Body scroll-lock while modal is open — JS adds `.legal-locked` to
+   <html> on open. Stops bg from scrolling under the sheet on mobile. */
+html.legal-locked, html.legal-locked body {
+  overflow: hidden;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   PHASE 3.6 — Forgot-password inline mode
+
+   Adds a third value to the tile's data-mode attribute: "forgot".
+   When active, the login/register form + tabs are hidden and a
+   minimal email-only block is revealed. Submit hits
+   /api/auth/password-reset/request — always returning 200 regardless
+   of whether the email exists, with a fixed success message.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Success toast at the top of the auth tile. JS reveals this on
+   ?reset=1 (set by /reset after a successful password change). The
+   toast slides in from above and auto-fades after 5s. */
+.auth-toast {
+  display: block;
+  max-height: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--green-br);
+  background: rgba(201, 148, 58, 0.08);
+  border: 1px solid rgba(201, 148, 58, 0.20);
+  border-radius: 10px;
+  padding: 0 12px;
+  margin: 0 0 0;
+  opacity: 0;
+  transition: max-height 320ms cubic-bezier(.4, 0, .2, 1),
+              padding    320ms cubic-bezier(.4, 0, .2, 1),
+              margin     320ms cubic-bezier(.4, 0, .2, 1),
+              opacity    260ms ease;
+}
+.auth-toast.visible {
+  max-height: 80px;
+  padding: 10px 12px;
+  margin: 0 0 14px;
+  opacity: 1;
+}
+
+/* "Забыли пароль?" link below the submit button — login mode only. */
+.auth-forgot-link {
+  display: none;
+  text-align: center;
+  margin-top: 12px;
+  color: var(--t2);
+  font-size: 12.5px;
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  align-self: center;
+  transition: color 200ms ease, border-color 200ms ease;
+}
+.auth-tile[data-mode="login"] .auth-forgot-link {
+  display: inline-block;
+}
+.auth-forgot-link:hover {
+  color: var(--t1);
+  border-bottom-color: rgba(168, 154, 134, .4);
+}
+
+/* Forgot block — hidden by default, revealed in forgot mode. */
+.auth-forgot { display: none; }
+.auth-tile[data-mode="forgot"] .auth-forgot { display: block; }
+
+/* In forgot mode, hide everything that's not the forgot block. */
+.auth-tile[data-mode="forgot"] .auth-tabs,
+.auth-tile[data-mode="forgot"] .auth-form,
+.auth-tile[data-mode="forgot"] .auth-forgot-link {
+  display: none;
+}
+
+/* Title text in forgot mode is set by JS; the subtitle here applies
+   only to the forgot block (sibling of the form). */
+.auth-forgot .auth-subtitle {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--t2);
+  line-height: 1.45;
+  margin: 0 0 18px;
+}
+
+/* Success message — revealed only after a successful reset request. */
+.auth-success {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green-br);
+  line-height: 1.5;
+  max-height: 0;
+  margin: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 280ms cubic-bezier(.4, 0, .2, 1),
+              margin-top 280ms cubic-bezier(.4, 0, .2, 1),
+              opacity    220ms ease;
+}
+.auth-success.visible {
+  max-height: 60px;
+  margin-top: 4px;
+  opacity: 1;
+}
+
+/* Back link — small, low-contrast, sits below the submit button. */
+.auth-back-link {
+  display: inline-block;
+  text-align: center;
+  margin-top: 16px;
+  color: var(--t2);
+  font-size: 13px;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  align-self: center;
+  transition: color 200ms ease, border-color 200ms ease;
+  width: 100%;
+}
+.auth-back-link:hover {
+  color: var(--t1);
+  border-bottom-color: rgba(168, 154, 134, .25);
 }

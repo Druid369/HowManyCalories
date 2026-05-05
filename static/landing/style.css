@@ -800,6 +800,38 @@ input, textarea { font-family: var(--fmono); cursor: none; }
 .ln-footer-link:hover { color: var(--accent-l); }
 
 /* ═══════════════════════════════════════════
+   Legal links (Phase 1 — 152-ФЗ)
+   Lives below the main footer; uppercase mono to match the page's
+   industrial typography vocabulary, low-contrast so it reads as
+   metadata rather than navigation.
+═══════════════════════════════════════════ */
+.ln-legal {
+  text-align: center;
+  font-family: var(--fmono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  color: var(--t3);
+  padding: 18px 24px 28px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.ln-legal a {
+  color: var(--t2);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color .25s, border-color .25s;
+}
+.ln-legal a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.ln-legal span { color: var(--t4); }
+
+/* ═══════════════════════════════════════════
    RESPONSIVE — mobile cursor disable
 ═══════════════════════════════════════════ */
 @media (hover: none), (pointer: coarse) {

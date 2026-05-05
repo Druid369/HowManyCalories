@@ -1,0 +1,292 @@
+/* ════════════════════════════════════════════════════════════════════
+   FORK — Legal pages (privacy / terms)
+
+   Standalone warm-dark stylesheet. These pages are public (reachable
+   without auth) and don't share the app's theme switcher — they always
+   render in the brand-default warm palette to feel like a continuation
+   of the app, not a generic legal disclaimer pasted on top.
+
+   Mobile-first. Single-column reading layout, max content width 680px
+   on desktop. Generous line-height for legal text readability.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Pinned warm-theme tokens — duplicated here intentionally so this
+     stylesheet is self-contained and doesn't depend on app.css load
+     order or theme bootstrap script. If the app palette ever shifts,
+     update both places (tradeoff: small drift risk vs. zero coupling
+     to a 3000-line stylesheet for two text-only pages). */
+  --bg:           #1A1714;
+  --bg2:          #242019;
+  --bg3:          #2E2923;
+
+  --t1:           #F1E9D2;
+  --t2:           #A89A86;
+  --t3:           #6B5F50;
+  --t4:           #4A4035;
+
+  --accent:       #C9943A;       /* warm ochre — same as app --green */
+  --accent-br:    #DEB05A;
+  --border:       rgba(198,183,155, 0.10);
+  --rule:         rgba(198,183,155, 0.06);
+
+  --type-display-font: 'Syne', system-ui, -apple-system, sans-serif;
+  --type-body-font:    'Figtree', system-ui, -apple-system, sans-serif;
+  --type-mono-font:    'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--t1);
+  font-family: var(--type-body-font);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Atmospheric background — far quieter than the app's Hearth, just a
+   single warm key-light glow at top so the page doesn't feel like flat
+   black. Pure CSS, no animation (legal text shouldn't flicker). */
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%,
+      rgba(201, 148, 58, 0.08), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 50% 110%,
+      rgba(0, 0, 0, 0.4), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.legal-shell {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  padding: 32px 20px 96px;
+}
+
+/* ── Top bar ──────────────────────────────────────────────────────── */
+.legal-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  max-width: 680px;
+  margin: 0 auto 40px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.legal-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--t2);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 160ms ease;
+}
+.legal-back:hover { color: var(--t1); }
+.legal-back svg { width: 16px; height: 16px; }
+
+.legal-logo {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--accent);
+}
+.legal-logo svg { width: 36px; height: 16px; }
+.legal-logo-name {
+  font-family: var(--type-display-font);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+/* ── Document body ────────────────────────────────────────────────── */
+.legal-doc {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.legal-eyebrow {
+  font-family: var(--type-mono-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t3);
+  margin: 0 0 12px;
+}
+
+.legal-doc h1 {
+  font-family: var(--type-display-font);
+  font-weight: 700;
+  font-size: clamp(28px, 6vw, 40px);
+  line-height: 1.15;
+  margin: 0 0 16px;
+  color: var(--t1);
+}
+
+.legal-meta {
+  font-size: 13px;
+  color: var(--t3);
+  margin: 0 0 48px;
+  font-family: var(--type-mono-font);
+  letter-spacing: 0.04em;
+}
+
+.legal-doc h2 {
+  font-family: var(--type-display-font);
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.3;
+  margin: 48px 0 16px;
+  color: var(--t1);
+  scroll-margin-top: 24px;
+}
+
+.legal-doc h2 .num {
+  display: inline-block;
+  font-family: var(--type-mono-font);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-right: 10px;
+  letter-spacing: 0.04em;
+}
+
+.legal-doc p {
+  margin: 0 0 16px;
+  color: var(--t1);
+}
+
+.legal-doc p + p { margin-top: 0; }
+
+.legal-doc strong {
+  color: var(--t1);
+  font-weight: 600;
+}
+
+.legal-doc ul, .legal-doc ol {
+  margin: 0 0 18px;
+  padding-left: 22px;
+  color: var(--t1);
+}
+.legal-doc li {
+  margin: 4px 0;
+}
+.legal-doc li::marker { color: var(--t3); }
+
+.legal-doc a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(201, 148, 58, 0.4);
+  transition: border-color 160ms ease, color 160ms ease;
+}
+.legal-doc a:hover {
+  color: var(--accent-br);
+  border-bottom-color: var(--accent-br);
+}
+
+/* Inline placeholder for operator info — fetched on load. The empty
+   value is hidden visually so no jarring blank gap appears before the
+   fetch resolves. Once filled, the .filled class drops the visibility
+   suppress. */
+.legal-fill {
+  font-weight: 600;
+  color: var(--accent);
+  font-style: normal;
+}
+.legal-fill:empty::before {
+  content: "…";
+  color: var(--t3);
+  font-weight: 400;
+}
+
+/* Subdued data table for the "what we collect" + "data flows" lists. */
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 24px;
+  font-size: 14px;
+}
+.legal-table th, .legal-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+  color: var(--t1);
+}
+.legal-table th {
+  font-family: var(--type-mono-font);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t3);
+}
+
+/* Section divider — subtle horizontal rule between major sections. */
+.legal-rule {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 56px 0;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────── */
+.legal-footer {
+  max-width: 680px;
+  margin: 64px auto 0;
+  padding-top: 28px;
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+  color: var(--t3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: space-between;
+}
+.legal-footer a {
+  color: var(--t2);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+.legal-footer a:hover {
+  color: var(--t1);
+  border-bottom-color: var(--rule);
+}
+.legal-footer-version {
+  font-family: var(--type-mono-font);
+  letter-spacing: 0.04em;
+}
+
+/* Mobile tweaks — tighter spacing, smaller display title. */
+@media (max-width: 480px) {
+  .legal-shell { padding: 24px 18px 64px; }
+  .legal-topbar { margin-bottom: 28px; }
+  .legal-doc h1 { font-size: clamp(24px, 8vw, 32px); }
+  .legal-doc h2 { margin-top: 36px; font-size: 18px; }
+  .legal-meta { margin-bottom: 32px; }
+  .legal-rule { margin: 40px 0; }
+  .legal-table { font-size: 13px; }
+  .legal-table th, .legal-table td { padding: 8px 10px; }
+}
+
+/* Respect reduced-motion preference: only the back-arrow hover transition
+   uses motion (very subtle), but kill it for users who asked for less. */
+@media (prefers-reduced-motion: reduce) {
+  .legal-back, .legal-doc a, .legal-footer a {
+    transition: none;
+  }
+}
+
+/* ── Embedded mode ────────────────────────────────────────────────
+   Set on <body> when the page is loaded inside the in-app modal
+   sheet (?embed=1). The modal already paints a close button and
+   sheet handle, so the page's own topbar + footer become redundant
+   chrome — hide them. The article body keeps its normal styling
+   so the policy text reads identically inside and outside the modal. */
+body.embedded .legal-topbar { display: none; }
+body.embedded .legal-footer { display: none; }
+body.embedded .legal-shell  { padding-top: 22px; padding-bottom: 22px; }

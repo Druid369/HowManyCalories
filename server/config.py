@@ -65,6 +65,72 @@ SEED_SUPERADMIN_PASSWORD = os.getenv("SEED_SUPERADMIN_PASSWORD", _DEV_DEFAULT_PA
 # resolved by the session-auth middleware. 0 disables the cap.
 MAX_SCANS_PER_USER_PER_DAY = int(os.getenv("MAX_SCANS_PER_USER_PER_DAY", "20"))
 
+# ── Phase 1: 152-ФЗ legal / consent ───────────────────────────────────────
+# Operator info rendered into /privacy + /terms (and later, email footers
+# when SMTP comes online in Phase 2). Kept here as env-overridable so
+# production values can land via Amvera env vars without a code change.
+# CONSENT_VERSION_CURRENT is bumped by hand when the privacy policy
+# materially changes — that re-prompts users on the next registration AND
+# becomes the version stamped onto each row in the consent_log table.
+OPERATOR_NAME = os.getenv("OPERATOR_NAME", "Иванов Иван Иванович")
+OPERATOR_CITY = os.getenv("OPERATOR_CITY", "Москва")
+CONSENT_VERSION_CURRENT = os.getenv("CONSENT_VERSION_CURRENT", "v1.2026-05")
+
+# ── Phase 2: email infrastructure ─────────────────────────────────────────
+# Transactional email goes through Unisender Go (their REST transactional
+# product, not the marketing API). The API key lives ONLY in env vars —
+# never committed, never logged, never echoed in error responses.
+#
+# EMAIL_TRANSPORT controls whether sends actually hit the network:
+#   - "log" (default in dev): writes the email body to logs, no API call.
+#     Lets us develop + test the auth flows end-to-end without burning
+#     Unisender quota or spamming inboxes.
+#   - "api": real HTTP POST to UNISENDER_API_ENDPOINT.
+#
+# Default endpoint is Unisender Go transactional (the product purpose-built
+# for confirm/reset emails). If you signed up for the legacy/standard
+# Unisender (which has list_id-based campaigns), override the endpoint env
+# var — but the standard product is a worse fit for transactional and we
+# don't ship a wrapper for its different request shape.
+EMAIL_TRANSPORT       = os.getenv("EMAIL_TRANSPORT", "log").lower()
+UNISENDER_API_KEY     = os.getenv("UNISENDER_API_KEY", "")
+UNISENDER_API_ENDPOINT = os.getenv(
+    "UNISENDER_API_ENDPOINT",
+    "https://go1.unisender.ru/ru/transactional/api/v1/email/send.json",
+)
+UNISENDER_FROM_EMAIL  = os.getenv("UNISENDER_FROM_EMAIL", "noreply@myfork.ru")
+UNISENDER_FROM_NAME   = os.getenv("UNISENDER_FROM_NAME", "FORK")
+
+# Token lifetimes — per-kind, in seconds. Confirm is generous (a user
+# may not check email immediately); reset is tight to limit blast
+# radius if a link gets stolen.
+EMAIL_CONFIRM_TOKEN_TTL_SEC = int(os.getenv("EMAIL_CONFIRM_TOKEN_TTL_SEC", str(24 * 3600)))
+EMAIL_RESET_TOKEN_TTL_SEC   = int(os.getenv("EMAIL_RESET_TOKEN_TTL_SEC",   str(1 * 3600)))
+
+# Public-facing base URL used to build links inside emails (verify,
+# reset). In dev defaults to localhost; in prod set to https://myfork.ru
+# so the links land where they should after the Phase 4 deploy.
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:8000")
+
+# ── Phase 3: guest accounts ───────────────────────────────────────────────
+# A guest is a hidden auto-created user with role='guest'. They can scan
+# up to GUEST_FREE_SCANS times before the API gates them with a 403
+# REGISTRATION_REQUIRED. Upgrading to a real user updates the same row
+# (preserves user_id → preserves scans/entries/water_log/settings).
+#
+# Cleanup policy: abandoned guests (zero scans, older than ABANDONED_DAYS)
+# and tire-kickers (under 2 scans, older than TRIAL_DAYS) get hard-
+# deleted by an opportunistic boot-time job in services/_cleanup.py.
+# The role='guest' filter ensures upgraded accounts are never touched.
+GUEST_FREE_SCANS            = int(os.getenv("GUEST_FREE_SCANS", "5"))
+GUEST_CLEANUP_ABANDONED_DAYS = int(os.getenv("GUEST_CLEANUP_ABANDONED_DAYS", "1"))
+GUEST_CLEANUP_TRIAL_DAYS    = int(os.getenv("GUEST_CLEANUP_TRIAL_DAYS", "7"))
+# Username prefix for auto-generated guests. Underscore was dropped so
+# the format `guestXXXXXXXX` matches the existing username regex
+# ([A-Za-z0-9]{1,32}) — that means a user upgrading from guest can keep
+# their guestXXXXXXXX name without us special-casing the validator.
+GUEST_USERNAME_PREFIX       = os.getenv("GUEST_USERNAME_PREFIX", "guest")
+
 # ── CORS ───────────────────────────────────────────────────────────────────
 # Comma-separated origins via env var; wide-open only allowed in dev.
 _cors_env = os.getenv("CORS_ORIGINS", "").strip()

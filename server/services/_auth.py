@@ -80,3 +80,26 @@ def validate_password(password: str) -> tuple[bool, str]:
 def new_session_id() -> str:
     """256 bits of entropy, URL-safe. Output length ~43 chars."""
     return secrets.token_urlsafe(32)
+
+
+# ── Guest credentials (Phase 3) ───────────────────────────────────────────
+# Auto-generated for visitors who hit `/` without a session. Username is
+# 8 hex chars after the prefix ('guestXXXXXXXX', 13 chars total) — fits
+# the existing username regex so a guest upgrading to a real user can
+# keep this name without special-casing the validator. Password is 32
+# random URL-safe chars; the user never sees it (only used to satisfy
+# users.password_hash NOT NULL). Upgrading rotates it to whatever the
+# user chose.
+
+def generate_guest_username(prefix: str = "guest") -> str:
+    """Returns `<prefix><8 hex chars>`. 32 bits of randomness — collision
+    is theoretically possible but the caller retries on UNIQUE constraint
+    violation, so collisions are handled at the DB layer."""
+    return prefix + secrets.token_hex(4)
+
+
+def generate_guest_password() -> str:
+    """Random unguessable password. Never displayed; upgrading rotates
+    it to a user-chosen value. Length matches our regular max (well
+    under bcrypt's 72-byte truncation point)."""
+    return secrets.token_urlsafe(32)

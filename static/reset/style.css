@@ -1,0 +1,43 @@
+/* ════════════════════════════════════════════════════════════════════
+   FORK — /reset page
+   Adds the few rules /login/style.css doesn't already cover. Most
+   of the visual heavy lifting (shell, tile, form, submit, fields)
+   is reused from the sibling login stylesheet — keeps the two pages
+   visually identical without duplicating CSS.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* By default the form block is shown and invalid block is hidden.
+   JS adds .invalid to the tile when no/expired token, swapping
+   visibility. The two blocks share the same auth-tile styling. */
+.reset-form-block    { display: block; }
+.reset-invalid-block { display: none; }
+.auth-tile.invalid .reset-form-block    { display: none; }
+.auth-tile.invalid .reset-invalid-block { display: block; }
+
+/* Invalid-mode CTA — the "Перейти ко входу" link styled as a submit
+   button. Uses the same gradient as auth-submit but always lit
+   (no .ready gate since there's nothing to validate). */
+.reset-invalid-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  margin-top: 16px;
+  /* Override the gated-dim default from .auth-submit: this button
+     should always be active. */
+  opacity: 1;
+  filter: none;
+  pointer-events: auto;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(201, 148, 58, .25);
+}
+
+/* Title + subtitle in invalid mode are slightly muted to read as
+   "info" rather than "do this now". */
+.reset-invalid-block .auth-title {
+  color: var(--t1);
+}
+.reset-invalid-block .auth-subtitle {
+  color: var(--t2);
+  margin-bottom: 18px;
+}

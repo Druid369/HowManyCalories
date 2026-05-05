@@ -975,6 +975,18 @@ async function handleFile(file) {
     // bite icon.
     autoSave(false);
   } catch (err) {
+    // Phase 3 — 6th-scan gate: server returns 403 with structured
+    // detail {code: "REGISTRATION_REQUIRED"} when a guest hits the
+    // lifetime free-scan cap. Open the upgrade sheet instead of a
+    // generic error toast — the user converts inline and their 5
+    // existing scans carry through to the new account.
+    if (err && err.code === 'REGISTRATION_REQUIRED') {
+      closeAnalyzingOverlay();
+      showScreen('upload');
+      if (typeof openUpgradeSheet === 'function') openUpgradeSheet();
+      _analyzeAbortController = null;
+      return;
+    }
     // User-cancelled: smooth return to idle, no error overlay. Distinguish
     // AbortError from real failure (the fetch was aborted via the cancel
     // button's hold-to-commit handler).
@@ -2145,8 +2157,13 @@ function renderRecent() {
   recentList.innerHTML = list.map(e => {
     const total = (e.result && e.result.total) || {};
     const m = macroPercents(total);
+    // onerror swap: when /api/scans/.../image returns 404 (image file gone
+    // — common on Railway's ephemeral filesystem after a redeploy), replace
+    // the broken-image icon with the empty placeholder div so the entry
+    // looks intentional rather than broken.
     const thumb = e.imageDataUrl
-      ? `<img class="recent-thumb" src="${e.imageDataUrl}" alt="" loading="lazy" decoding="async">`
+      ? `<img class="recent-thumb" src="${e.imageDataUrl}" alt="" loading="lazy" decoding="async"
+             onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'recent-thumb'}))">`
       : `<div class="recent-thumb"></div>`;
     const dimCls = isEntryConsumed(e) ? '' : ' is-skipped';
     return `
@@ -2533,7 +2550,8 @@ function renderHistoryEntry(e, i) {
   return `
     <div class="history-entry${dimCls}" data-entry-id="${e.id}" style="animation-delay:${i * 40}ms">
       ${e.imageDataUrl
-        ? `<img class="history-thumb" src="${e.imageDataUrl}" alt="" loading="lazy" decoding="async">`
+        ? `<img class="history-thumb" src="${e.imageDataUrl}" alt="" loading="lazy" decoding="async"
+              onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'history-thumb'}))">`
         : `<div class="history-thumb"></div>`}
       <div class="history-info">
         <div class="history-name">${esc(e.itemNames || 'Блюдо')}</div>
@@ -4969,21 +4987,405 @@ safeRun('btnViewAllHistory wire', () => {
   }
 });
 
-// Phase 10: session-expired-while-away guard. If the cookie is still
-// in the browser but the server has expired the session (e.g. the user
-// closed the laptop for 35 days, server lifetime is 30), we want to
-// kick them to /login rather than show a stale-looking app whose
-// background syncs all silently 401. Reaching the main app HTML at all
-// implies the server-side route gate already ran — so this client-side
-// check is a defense-in-depth for the cookie-still-present-but-server-
-// session-gone race that can happen if the browser cached the page.
-safeRun('sessionExpiredGuard', async () => {
+// Phase 10 + Phase 3: session-expired-while-away guard, also
+// doubling as the boot-time read of /api/auth/me that tells the
+// guest UI which header chrome to render. Single fetch, dual purpose:
+// 401 → kick to /login; 200 → set body[data-user-role] and paint
+// the guest scan counter when applicable.
+//
+// Why 401-handling matters even after the server-side / route gate:
+// the browser may serve a cached HTML page whose cookie's session has
+// since expired server-side. Without this, the user sees a stale app
+// whose background syncs silently 401. The /me probe surfaces it
+// immediately.
+safeRun('sessionGuardAndGuestUI', async () => {
   try {
     const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
     if (res.status === 401) {
       window.location.replace('/login');
+      return;
+    }
+    if (res.ok) {
+      const user = await res.json();
+      applyGuestUIState(user);
     }
   } catch { /* network glitch — let the user see whatever cache holds */ }
+});
+
+// ── Phase 3: guest UI state (header swap + scan counter) ───────────
+// applyGuestUIState writes `data-user-role` on <body> so CSS can
+// toggle which header-actions block is visible (gear/calendar/account
+// for users; counter + Создать-аккаунт for guests). For guests we
+// also paint the dot counter from `user.scan_count` (the /api/auth/me
+// handler now stuffs lifetime scan count into that field).
+
+// Cached snapshot of /api/auth/me — used by the upgrade sheet to
+// pre-fill the username field with the current guest_xxx value, and
+// by the email-pending banner (3.5c) to read email_verified.
+let _hmcCurrentUser = null;
+
+function applyGuestUIState(user) {
+  if (!user) return;
+  // Stash for later use (upgrade sheet pre-fills username from this).
+  _hmcCurrentUser = user;
+  document.body.dataset.userRole = user.role || 'user';
+  if (user.role === 'guest') {
+    paintGuestCounter(user.scan_count || 0);
+  }
+  applyEmailPendingBanner(user);
+}
+
+// Phase 3.5c: email-pending banner.
+// Shown ONLY when role='user' (not admin/guest), email is set, and
+// it's not yet verified. Admins are exempt — they're seeded without
+// emails. Guests don't have email yet by definition.
+function applyEmailPendingBanner(user) {
+  const banner = document.getElementById('emailPendingBanner');
+  if (!banner) return;
+  const show = !!(
+    user &&
+    user.role === 'user' &&
+    user.email &&
+    !user.email_verified
+  );
+  banner.classList.toggle('visible', show);
+}
+
+function paintGuestCounter(usedCount) {
+  const counter = document.getElementById('guestCounter');
+  const btn     = document.getElementById('btnGuestUpgrade');
+  if (!counter) return;
+  const cap = 5;
+  const used = Math.min(Math.max(usedCount | 0, 0), cap);
+  counter.querySelectorAll('.guest-counter-dot').forEach((dot, i) => {
+    dot.classList.toggle('used', i < used);
+  });
+  counter.classList.toggle('full', used >= cap);
+  if (btn) btn.classList.toggle('urgent', used >= cap);
+}
+
+// "Создать аккаунт" click handler. Opens the upgrade sheet (defined
+// below). The sheet's submit hits POST /api/auth/upgrade-guest; on
+// success the user_id stays the same and applyGuestUIState() rebinds
+// the page to user-mode header chrome.
+safeRun('guestUpgradeBtn wire', () => {
+  const btn = document.getElementById('btnGuestUpgrade');
+  if (!btn) return;
+  btn.addEventListener('click', () => openUpgradeSheet());
+});
+
+// ── Phase 3.5b: upgrade sheet ─────────────────────────────────────
+
+function openUpgradeSheet() {
+  const sheet = document.getElementById('upgradeSheet');
+  if (!sheet) return;
+
+  // Pre-fill username from the cached /me payload — guest_xxx by
+  // default. Only fill if the field is empty so we don't clobber a
+  // user-typed value when they reopen after a validation error.
+  const usernameInput = document.getElementById('upgradeUsername');
+  if (usernameInput && !usernameInput.value && _hmcCurrentUser && _hmcCurrentUser.username) {
+    usernameInput.value = _hmcCurrentUser.username;
+  }
+  // Clear any prior error from a previous attempt.
+  const errEl = document.getElementById('upgradeError');
+  if (errEl) {
+    errEl.classList.remove('visible');
+    errEl.textContent = '';
+  }
+  upgradeCheckReady();
+
+  sheet.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => sheet.classList.add('visible'));
+  document.documentElement.classList.add('upgrade-sheet-open');
+}
+function closeUpgradeSheet() {
+  const sheet = document.getElementById('upgradeSheet');
+  if (!sheet) return;
+  sheet.classList.remove('visible');
+  document.documentElement.classList.remove('upgrade-sheet-open');
+  setTimeout(() => sheet.setAttribute('aria-hidden', 'true'), 400);
+}
+window.openUpgradeSheet  = openUpgradeSheet;
+window.closeUpgradeSheet = closeUpgradeSheet;
+
+function upgradeCheckReady() {
+  const form = document.getElementById('upgradeForm');
+  if (!form) return;
+  const u  = document.getElementById('upgradeUsername');
+  const e  = document.getElementById('upgradeEmail');
+  const p  = document.getElementById('upgradePassword');
+  const pc = document.getElementById('upgradePasswordConfirm');
+  const c  = document.getElementById('upgradeConsent');
+  const usernameOk = u && /^[A-Za-z0-9]{1,32}$/.test(u.value.trim());
+  const emailOk    = e && e.value.trim().length >= 3 && e.value.includes('@') && e.value.includes('.');
+  const passOk     = p && p.value.length >= 4;
+  const matchOk    = p && pc && p.value === pc.value && pc.value.length >= 4;
+  const consentOk  = c && c.checked;
+  form.classList.toggle('ready', usernameOk && emailOk && passOk && matchOk && consentOk);
+}
+
+function showUpgradeError(msg) {
+  const el = document.getElementById('upgradeError');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+function clearUpgradeError() {
+  const el = document.getElementById('upgradeError');
+  if (!el) return;
+  el.classList.remove('visible');
+  setTimeout(() => { if (!el.classList.contains('visible')) el.textContent = ''; }, 220);
+}
+
+// Map known server error strings to friendly Russian. Server messages
+// are already mostly Russian but we want a single fallback phrase for
+// anything we don't expect.
+const UPGRADE_ERROR_MAP = {
+  'Только гостевые аккаунты можно регистрировать':
+    'Только гостевые аккаунты можно регистрировать',
+  'Согласие на обработку персональных данных обязательно':
+    'Подтвердите согласие на обработку персональных данных',
+  'Это имя уже занято':              'Это имя уже занято',
+  'Этот email уже используется':     'Этот email уже используется',
+  'Это имя или email уже используется': 'Это имя или email уже используется',
+  'Этот аккаунт уже зарегистрирован':   'Аккаунт уже зарегистрирован',
+  'Неверный формат email':              'Неверный формат email',
+  'Это имя зарезервировано':            'Это имя зарезервировано',
+  'Username must be 1-32 letters or digits (no symbols, no spaces)':
+    'Имя: 1–32 символа, только буквы и цифры',
+  'Password must be at least 4 characters':
+    'Пароль должен быть минимум 4 символа',
+};
+function localizeUpgradeError(detail) {
+  if (typeof detail === 'string' && UPGRADE_ERROR_MAP[detail]) return UPGRADE_ERROR_MAP[detail];
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length) {
+    const first = detail[0];
+    return (first && (first.msg || first.message)) || 'Проверьте данные и попробуйте снова';
+  }
+  return 'Что-то пошло не так. Попробуйте снова.';
+}
+
+safeRun('upgradeSheet wire', () => {
+  const sheet = document.getElementById('upgradeSheet');
+  const form  = document.getElementById('upgradeForm');
+  if (!sheet || !form) return;
+
+  // Close handlers — backdrop tap, ✕ button, ESC.
+  sheet.addEventListener('click', (e) => {
+    if (e.target.closest && e.target.closest('[data-upgrade-close]')) {
+      closeUpgradeSheet();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sheet.classList.contains('visible')) {
+      closeUpgradeSheet();
+    }
+  });
+
+  // Readiness gating — recompute on any input/checkbox change.
+  ['upgradeUsername','upgradeEmail','upgradePassword','upgradePasswordConfirm']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', upgradeCheckReady);
+    });
+  const consent = document.getElementById('upgradeConsent');
+  if (consent) consent.addEventListener('change', upgradeCheckReady);
+
+  // Submit handler.
+  let busy = false;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    clearUpgradeError();
+
+    const username = document.getElementById('upgradeUsername').value.trim();
+    const email    = document.getElementById('upgradeEmail').value.trim();
+    const password = document.getElementById('upgradePassword').value;
+    const confirm  = document.getElementById('upgradePasswordConfirm').value;
+    const consentChecked = document.getElementById('upgradeConsent').checked;
+
+    if (!/^[A-Za-z0-9]{1,32}$/.test(username)) {
+      showUpgradeError('Имя: 1–32 символа, только буквы и цифры');
+      return;
+    }
+    if (!email.includes('@') || !email.includes('.')) {
+      showUpgradeError('Неверный формат email');
+      return;
+    }
+    if (password.length < 4) {
+      showUpgradeError('Пароль должен быть минимум 4 символа');
+      return;
+    }
+    if (password !== confirm) {
+      showUpgradeError('Пароли не совпадают');
+      return;
+    }
+    if (!consentChecked) {
+      const label = consent && consent.closest('.upgrade-consent');
+      if (label) {
+        label.classList.remove('nudge');
+        void label.offsetWidth;
+        label.classList.add('nudge');
+      }
+      showUpgradeError('Подтвердите согласие на обработку персональных данных');
+      return;
+    }
+
+    const submitBtn = document.getElementById('upgradeSubmit');
+    busy = true;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add('loading');
+    }
+
+    try {
+      const res = await fetch('/api/auth/upgrade-guest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password, consent: true }),
+        credentials: 'same-origin',
+      });
+      if (!res.ok) {
+        let body = {};
+        try { body = await res.json(); } catch { /* non-JSON */ }
+        showUpgradeError(localizeUpgradeError(body.detail));
+        busy = false;
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('loading');
+        }
+        return;
+      }
+      const data = await res.json();
+      // Success — apply the new user state. body[data-user-role] flips
+      // to 'user', the guest counter + upgrade button vanish, the
+      // gear/calendar/account icons reappear.
+      _hmcCurrentUser = data.user || _hmcCurrentUser;
+      if (data.user) applyGuestUIState(data.user);
+      closeUpgradeSheet();
+      // Light celebratory haptic (existing helper) + small alert.
+      // A proper toast lands in 3.5c with the email-pending banner.
+      if (typeof haptic === 'function') haptic(12);
+      // Nudge the user toward checking email if they want to confirm now.
+      // Banner from 3.5c will become the persistent indicator.
+      setTimeout(() => {
+        // Soft success cue. Native alert is placeholder; 3.5c banner
+        // is the polished version.
+        if (data.user && data.user.email && !data.user.email_verified) {
+          // Don't alert spam — just update internal state. The
+          // forthcoming banner is the user-visible cue.
+        }
+      }, 0);
+    } catch (err) {
+      showUpgradeError('Сетевая ошибка. Проверьте подключение.');
+      busy = false;
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('loading');
+      }
+    }
+  });
+
+  // Initial readiness pass (in case browser autofill populated fields).
+  upgradeCheckReady();
+});
+
+
+// ── Phase 3.5c: email-pending banner — resend + verified handler ──
+
+safeRun('emailPendingBanner wire', () => {
+  const btn = document.getElementById('btnResendEmail');
+  if (!btn) return;
+
+  const DEFAULT_LABEL = 'Отправить заново';
+
+  async function handleResend() {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = 'Отправляем…';
+    btn.classList.remove('success');
+    try {
+      const res = await fetch('/api/auth/email/request-confirmation', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      if (res.ok) {
+        btn.textContent = 'Отправлено';
+        btn.classList.add('success');
+      } else if (res.status === 429) {
+        btn.textContent = 'Слишком часто';
+      } else if (res.status === 400) {
+        // Either no email set or already verified — both edge cases
+        // mean the banner shouldn't be there. Refresh state and let
+        // applyEmailPendingBanner hide it.
+        btn.textContent = 'Уже подтверждён';
+        await refreshMeAndApply();
+      } else {
+        btn.textContent = 'Не получилось';
+      }
+    } catch {
+      btn.textContent = 'Сетевая ошибка';
+    }
+    // Restore button to default after a beat. Keep .success styling
+    // for the full 4s so the user sees the confirmation, then revert.
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = DEFAULT_LABEL;
+      btn.classList.remove('success');
+    }, 4000);
+  }
+  btn.addEventListener('click', handleResend);
+});
+
+// Refetch /api/auth/me and re-apply UI state. Used by the
+// ?verified=1 handler below and after the resend button hits the
+// "already verified" path. Failures are silent — the banner stays in
+// whatever state it was, the user can refresh manually.
+async function refreshMeAndApply() {
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+    if (res.ok) {
+      const user = await res.json();
+      applyGuestUIState(user);
+    }
+  } catch { /* network glitch */ }
+}
+
+// Detect the ?verified=1 query string set by /api/auth/email/verify
+// after a successful token consumption. Refreshes /me so the banner
+// disappears, then strips the param from the URL so a hard reload
+// doesn't keep re-triggering the refresh.
+safeRun('verifiedParam handler', () => {
+  let params;
+  try { params = new URLSearchParams(window.location.search); } catch { return; }
+  if (!params.has('verified')) return;
+  const verified = params.get('verified') === '1';
+  // Strip the param from the visible URL.
+  const cleanUrl = window.location.pathname + window.location.hash;
+  try { window.history.replaceState({}, '', cleanUrl); } catch { /* file:// or sandbox */ }
+  if (verified) {
+    // Re-fetch /me so email_verified=1 propagates and the banner hides.
+    refreshMeAndApply();
+  }
+});
+
+// When the user's history changes (a scan just completed), the
+// counter needs to advance. We refetch /me — the server is the source
+// of truth for lifetime scan count, and the round-trip is one cheap
+// query. Skip the fetch entirely for non-guests to avoid pointless
+// load on every entry-list change.
+window.addEventListener('hmc:history-changed', async () => {
+  if (document.body.dataset.userRole !== 'guest') return;
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+    if (res.ok) {
+      const user = await res.json();
+      paintGuestCounter(user.scan_count || 0);
+    }
+  } catch { /* ignore */ }
 });
 
 // Phase 2: sync the canonical history from the server. Fire-and-forget;

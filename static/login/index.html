@@ -8,7 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/login/style.css?v=20260501-logotype-1">
+  <link rel="stylesheet" href="/static/login/style.css?v=20260505-phase37">
+  <link rel="stylesheet" href="/static/css/legal-article.css?v=20260504-1">
+  <link rel="stylesheet" href="/static/css/cookie-banner.css?v=20260504-1">
 </head>
 <body>
 
@@ -44,8 +46,12 @@
          silhouette so the visual language is consistent across the app. -->
     <section class="auth-tile" id="authTile">
 
+      <!-- Phase 3.7 — success toast for users redirected from /reset
+           after a successful password change. JS reveals this on
+           ?reset=1 then auto-fades after 5s. Hidden by default. -->
+      <p class="auth-toast" id="authToast" aria-live="polite"></p>
+
       <h1 class="auth-title" id="authTitle">Войти</h1>
-      <p class="auth-subtitle" id="authSubtitle">Введите имя и пароль, чтобы открыть свой аккаунт</p>
 
       <!-- Tab selector — Login / Register. Visual: an underline indicator
            that slides between the two slots when the active tab changes
@@ -71,8 +77,12 @@
             autocapitalize="off"
             autocorrect="off"
             spellcheck="false"
-            placeholder="буквы и цифры"
           >
+          <!-- Contextual hint: appears on focus, fades out once the
+               input becomes :valid. Replaces the static subtitle —
+               the rules surface exactly when the user is about to
+               run into them, not before. -->
+          <p class="auth-field-hint">1–32 символа · только буквы и цифры</p>
         </div>
         <div class="auth-field">
           <label for="password">Пароль</label>
@@ -84,8 +94,34 @@
             minlength="4"
             maxlength="128"
             autocomplete="current-password"
-            placeholder="минимум 4 символа"
           >
+          <p class="auth-field-hint">минимум 4 символа</p>
+        </div>
+
+        <!-- 152-ФЗ consent — wrapped in a grid-rows-transition shell so
+             toggling register mode animates the height instead of
+             snapping. The wrapper is the "expandable container",
+             .auth-consent-inner has overflow: hidden so its content
+             slides cleanly. Pre-checking would be invalid under
+             Russian law — the user must take affirmative action. -->
+        <div class="auth-consent-wrap">
+          <div class="auth-consent-inner">
+            <label class="auth-consent" for="consent">
+              <input type="checkbox" id="consent" class="auth-consent-input" name="consent">
+              <span class="auth-consent-mark" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 8.5 L6.5 12 L13 4.5"/>
+                </svg>
+              </span>
+              <span class="auth-consent-text">
+                Я принимаю
+                <a href="/privacy" data-legal="privacy">Политику конфиденциальности</a>
+                и
+                <a href="/terms" data-legal="terms">Условия использования</a>
+                и согласен на обработку персональных данных согласно ФЗ-152.
+              </span>
+            </label>
+          </div>
         </div>
 
         <p class="auth-error" id="authError" aria-live="polite"></p>
@@ -94,20 +130,87 @@
           <span class="auth-submit-label" id="authSubmitLabel">Войти</span>
           <span class="auth-submit-spinner" aria-hidden="true"></span>
         </button>
+
+        <!-- Forgot-password trigger — visible only in login mode (CSS
+             gates this on .auth-tile[data-mode="login"]). Click swaps
+             the tile into a third 'forgot' mode that hides this form
+             and reveals the email-only reset request block below. -->
+        <a href="#" class="auth-forgot-link" id="authForgotLink">Забыли пароль?</a>
       </form>
 
-      <p class="auth-toggle-hint" id="authToggleHint">
-        Первый раз? <a href="#" data-mode="register">Создать аккаунт</a>
-      </p>
+      <!-- Phase 3.6 — password reset request block. Visible only when
+           data-mode="forgot". Single email field; submit hits
+           /api/auth/password-reset/request which always returns 200
+           regardless of whether the email exists (anti-enumeration).
+           The success message reflects that ambiguity ("если email
+           зарегистрирован..."). Back link returns to login mode. -->
+      <div class="auth-forgot" id="authForgot">
+        <p class="auth-subtitle">Введите email — мы пришлём ссылку для сброса пароля.</p>
+
+        <form class="auth-form" id="forgotForm" autocomplete="on" novalidate>
+          <div class="auth-field">
+            <label for="forgotEmail">Email</label>
+            <input type="email" id="forgotEmail" name="email" required autocomplete="email" autocapitalize="off" spellcheck="false">
+          </div>
+
+          <p class="auth-error" id="forgotError" aria-live="polite"></p>
+          <p class="auth-success" id="forgotSuccess" aria-live="polite">
+            Если email зарегистрирован, ссылка отправлена. Проверьте почту в течение часа.
+          </p>
+
+          <button class="auth-submit" id="forgotSubmit" type="submit">
+            <span class="auth-submit-label">Отправить ссылку</span>
+            <span class="auth-submit-spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+
+        <a href="#" class="auth-back-link" id="authBackToLogin">← Войти</a>
+      </div>
+
+      <!-- Toggle hint removed — the tabs at the top of the tile already
+           let the user switch between Войти and Создать, so this row was
+           redundant chrome that pushed the legal footer off-screen on
+           tall-content (register) mode. -->
 
     </section>
 
-    <footer class="auth-tagline">
-      Сканируй еду · Считай калории · Никаких лишних вопросов
-    </footer>
+    <!-- Bottom block — tagline pinned to the viewport bottom (CSS
+         positions .auth-bottom absolutely). The Политика/Условия
+         row that used to live here was removed: the consent
+         checkbox in register mode already exposes both links, and
+         duplicating them here was dead chrome. -->
+    <div class="auth-bottom">
+      <footer class="auth-tagline">
+        Сканируй еду · Считай калории · Никаких лишних вопросов
+      </footer>
+    </div>
 
   </main>
 
-  <script src="/static/login/script.js?v=20260501-glass-1"></script>
+  <!-- Legal modal — slide-up sheet showing /privacy or /terms in an
+       iframe. Hidden by default; JS toggles .visible on intercepted
+       link clicks. The iframe loads the canonical legal page with
+       ?embed=1, which suppresses the page's own topbar and footer
+       so the modal frame is the only chrome the user sees. -->
+  <div class="legal-modal" id="legalModal" aria-hidden="true">
+    <div class="legal-modal-backdrop" data-modal-close></div>
+    <div class="legal-modal-sheet" role="dialog" aria-modal="true" aria-label="Документ" id="legalModalSheet">
+      <div class="legal-modal-handle" aria-hidden="true"></div>
+      <button class="legal-modal-close" type="button" aria-label="Закрыть" data-modal-close>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+      <!-- Iframe was replaced with fetch + inject. Chromium-based
+           browsers (incl. Brave Shields) silently dropped the iframe
+           load even with eager loading; fetch + DOMParser bypasses
+           every iframe-related quirk and uses the same canonical
+           /privacy and /terms HTML as the standalone pages. -->
+      <div class="legal-modal-content" id="legalModalContent" tabindex="0"></div>
+    </div>
+  </div>
+
+  <script src="/static/login/script.js?v=20260505-phase37"></script>
+  <script src="/static/js/cookie-banner.js?v=20260504-1" defer></script>
 </body>
 </html>

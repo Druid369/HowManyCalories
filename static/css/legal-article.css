@@ -1,0 +1,197 @@
+/* ════════════════════════════════════════════════════════════════════
+   FORK — Legal article styles (scoped for in-app modal injection)
+
+   Subset of legal.css that handles ONLY the .legal-doc article body,
+   scoped under .legal-modal-content so it can be safely included
+   alongside login / app stylesheets without colliding with their
+   body/html-level rules.
+
+   When /privacy or /terms is loaded standalone, legal.css applies in
+   full. When the article is fetched + injected into the legal modal,
+   THIS file styles the injected fragment.
+   ════════════════════════════════════════════════════════════════════ */
+
+.legal-modal-content {
+  /* Pinned tokens — the modal floats on the login page where these
+     vars may not exist or may have different values. Hard-coding here
+     keeps the article's appearance consistent with the standalone page. */
+  --la-accent:    #C9943A;
+  --la-accent-br: #DEB05A;
+  --la-t1:        #F1E9D2;
+  --la-t2:        #A89A86;
+  --la-t3:        #6B5F50;
+  --la-t4:        #4A4035;
+  --la-rule:      rgba(198,183,155, 0.06);
+
+  --la-display:   'Syne', system-ui, -apple-system, sans-serif;
+  --la-body:      'Figtree', system-ui, -apple-system, sans-serif;
+  --la-mono:      'JetBrains Mono', ui-monospace, monospace;
+
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 28px 32px;
+  font-family: var(--la-body);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--la-t1);
+}
+
+/* The injected article — same layout the standalone page uses. */
+.legal-modal-content .legal-doc {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.legal-modal-content .legal-eyebrow {
+  font-family: var(--la-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--la-t3);
+  margin: 0 0 12px;
+}
+
+.legal-modal-content .legal-doc h1 {
+  font-family: var(--la-display);
+  font-weight: 700;
+  font-size: clamp(24px, 5vw, 32px);
+  line-height: 1.15;
+  margin: 0 0 14px;
+  color: var(--la-t1);
+}
+
+.legal-modal-content .legal-meta {
+  font-size: 13px;
+  color: var(--la-t3);
+  margin: 0 0 36px;
+  font-family: var(--la-mono);
+  letter-spacing: 0.04em;
+}
+
+.legal-modal-content .legal-doc h2 {
+  font-family: var(--la-display);
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.3;
+  margin: 36px 0 14px;
+  color: var(--la-t1);
+  scroll-margin-top: 16px;
+}
+
+.legal-modal-content .legal-doc h2 .num {
+  display: inline-block;
+  font-family: var(--la-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--la-accent);
+  margin-right: 10px;
+  letter-spacing: 0.04em;
+}
+
+.legal-modal-content .legal-doc p {
+  margin: 0 0 14px;
+  color: var(--la-t1);
+}
+.legal-modal-content .legal-doc p + p { margin-top: 0; }
+
+.legal-modal-content .legal-doc strong {
+  color: var(--la-t1);
+  font-weight: 600;
+}
+
+.legal-modal-content .legal-doc ul,
+.legal-modal-content .legal-doc ol {
+  margin: 0 0 16px;
+  padding-left: 22px;
+  color: var(--la-t1);
+}
+.legal-modal-content .legal-doc li { margin: 4px 0; }
+.legal-modal-content .legal-doc li::marker { color: var(--la-t3); }
+
+.legal-modal-content .legal-doc a {
+  color: var(--la-accent);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(201, 148, 58, 0.4);
+  transition: border-color 160ms ease, color 160ms ease;
+}
+.legal-modal-content .legal-doc a:hover {
+  color: var(--la-accent-br);
+  border-bottom-color: var(--la-accent-br);
+}
+
+.legal-modal-content .legal-fill {
+  font-weight: 600;
+  color: var(--la-accent);
+  font-style: normal;
+}
+.legal-modal-content .legal-fill:empty::before {
+  content: "…";
+  color: var(--la-t3);
+  font-weight: 400;
+}
+
+.legal-modal-content .legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 22px;
+  font-size: 14px;
+}
+.legal-modal-content .legal-table th,
+.legal-modal-content .legal-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--la-rule);
+  vertical-align: top;
+  color: var(--la-t1);
+}
+.legal-modal-content .legal-table th {
+  font-family: var(--la-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--la-t3);
+}
+
+.legal-modal-content .legal-rule {
+  border: none;
+  border-top: 1px solid var(--la-rule);
+  margin: 36px 0;
+}
+
+/* Inline error state when the fetch fails. */
+.legal-modal-content.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+}
+.legal-modal-content .legal-error {
+  color: var(--la-t2);
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 320px;
+}
+.legal-modal-content .legal-error a {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--la-accent-br);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(201, 148, 58, 0.4);
+  padding-bottom: 1px;
+}
+
+/* Mobile tweaks */
+@media (max-width: 480px) {
+  .legal-modal-content { padding: 14px 18px 24px; font-size: 15px; }
+  .legal-modal-content .legal-doc h1 { font-size: clamp(20px, 7vw, 26px); }
+  .legal-modal-content .legal-doc h2 { font-size: 17px; margin-top: 28px; }
+  .legal-modal-content .legal-meta { margin-bottom: 24px; }
+  .legal-modal-content .legal-table { font-size: 13px; }
+  .legal-modal-content .legal-table th,
+  .legal-modal-content .legal-table td { padding: 8px 10px; }
+}

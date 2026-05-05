@@ -107,11 +107,25 @@ CREATE TABLE IF NOT EXISTS users (
     activity_level  TEXT,
     created_at      TEXT NOT NULL,
     last_login_at   TEXT,
-    scan_count      INTEGER NOT NULL DEFAULT 0
+    scan_count      INTEGER NOT NULL DEFAULT 0,
+
+    -- Phase 2 email columns. Nullable so existing users keep working
+    -- without an email (the "grandfather" rule from the PRD). UNIQUE
+    -- COLLATE NOCASE prevents two accounts from claiming the same
+    -- email regardless of letter casing. SQLite UNIQUE allows
+    -- multiple NULLs which is exactly what we want — pre-Phase-2
+    -- accounts coexist freely until/unless they add an email.
+    email           TEXT UNIQUE COLLATE NOCASE,
+    email_verified  INTEGER NOT NULL DEFAULT 0,
+    email_added_at  TEXT
 )
 """
 _CREATE_INDEX_USERS_USERNAME = """
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username COLLATE NOCASE)
+"""
+_CREATE_INDEX_USERS_EMAIL = """
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email COLLATE NOCASE)
+WHERE email IS NOT NULL
 """
 
 # ── Sessions ──────────────────────────────────────────────────────────────
@@ -154,6 +168,10 @@ async def init_db(db_path: str) -> None:
         await db.execute(_CREATE_INDEX_CREATED_AT)
         await db.execute(_CREATE_USERS_TABLE)
         await db.execute(_CREATE_INDEX_USERS_USERNAME)
+        # NOTE: email index is created in init_users_email_columns(),
+        # NOT here — on legacy installs the users table predates the
+        # email column and CREATE INDEX ON users(email) would fail at
+        # boot before the migration has a chance to add the column.
         await db.execute(_CREATE_SESSIONS_TABLE)
         await db.execute(_CREATE_INDEX_SESSIONS_USER)
         await db.execute(_CREATE_INDEX_SESSIONS_EXPIRES)
@@ -1135,6 +1153,362 @@ async def put_water_log(db_path: str, user_id: int, log: list) -> None:
             (user_id, payload, _utcnow_iso()),
         )
         await db.commit()
+
+
+# ── Phase 1: 152-ФЗ consent log ──────────────────────────────────────────
+# Append-only audit trail of every consent given by every user. One row
+# per consent event; never UPDATEd, never DELETEd by application code
+# (only CASCADEd away when the user account is deleted).
+#
+# `scope` partitions the event vocabulary: 'registration' (consent at
+# signup), 'cookies' (banner dismiss), 'marketing' (future opt-in for
+# email digests). Adding a new scope is a string-only change — no schema
+# bump needed.
+#
+# `consent_version` is the policy version the user accepted (e.g.
+# 'v1.2026-05'). When the policy materially changes we'll bump the
+# constant and re-prompt; the audit trail then shows which version each
+# user accepted and when.
+_CREATE_CONSENT_LOG_TABLE = """
+CREATE TABLE IF NOT EXISTS consent_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL,
+    consent_version TEXT NOT NULL,
+    scope           TEXT NOT NULL,
+    given_at        TEXT NOT NULL,
+    ip_addr         TEXT,
+    user_agent      TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)
+"""
+# Single composite index covers both common reads:
+#   (1) "has this user consented to scope X?" — hits user_id+scope prefix
+#   (2) "latest consent of scope X for user Y" — given_at DESC for ORDER
+_CREATE_INDEX_CONSENT_LOG_USER_SCOPE = """
+CREATE INDEX IF NOT EXISTS idx_consent_log_user_scope
+    ON consent_log(user_id, scope, given_at DESC)
+"""
+
+
+async def init_consent_log_table(db_path: str) -> None:
+    """Idempotent: creates `consent_log` + its index. Safe on every boot."""
+    async with aiosqlite.connect(db_path) as db:
+        await db.execute("PRAGMA foreign_keys = ON")
+        await db.execute(_CREATE_CONSENT_LOG_TABLE)
+        await db.execute(_CREATE_INDEX_CONSENT_LOG_USER_SCOPE)
+        await db.commit()
+
+
+async def record_consent(
+    db_path: str,
+    user_id: int,
+    consent_version: str,
+    scope: str,
+    ip_addr: str | None = None,
+    user_agent: str | None = None,
+) -> int:
+    """Append one consent event. Returns the new row's id. User-Agent is
+    truncated by the caller to match the sessions table convention (200
+    chars). No size cap on consent_version / scope here — Pydantic at
+    the API boundary is the source of truth on those."""
+    async with aiosqlite.connect(db_path) as db:
+        cursor = await db.execute(
+            """
+            INSERT INTO consent_log (
+                user_id, consent_version, scope, given_at, ip_addr, user_agent
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, consent_version, scope, _utcnow_iso(), ip_addr, user_agent),
+        )
+        log_id = cursor.lastrowid
+        await db.commit()
+    return log_id
+
+
+# ── Phase 2: email columns + token store ────────────────────────────────
+# The `users` table picks up three new columns (email, email_verified,
+# email_added_at) and a new `email_tokens` audit table holds confirm/
+# reset tokens. Tokens are stored as SHA-256 hashes — a DB leak doesn't
+# expose live links a stolen-DB-attacker could use to take over
+# accounts. The raw token only ever exists in transit (in the URL we
+# email out) and in the user's email inbox.
+#
+# Token model:
+#   - 32 bytes from secrets.token_urlsafe(), gives ~43 URL-safe chars
+#   - kind: 'confirm' (24h TTL) | 'reset' (1h TTL)
+#   - email: captured at issue time, so changing email doesn't
+#     invalidate an outstanding token
+#   - used: 1 after consumption; never reused
+#
+# Lookup pattern: receive raw token from URL → sha256 it →
+# `find_email_token(hash, kind)` → if active+unused, mark used + act.
+
+_CREATE_EMAIL_TOKENS_TABLE = """
+CREATE TABLE IF NOT EXISTS email_tokens (
+    token_hash  TEXT PRIMARY KEY,
+    user_id     INTEGER NOT NULL,
+    kind        TEXT NOT NULL,
+    email       TEXT NOT NULL,
+    created_at  TEXT NOT NULL,
+    expires_at  TEXT NOT NULL,
+    used        INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+)
+"""
+# (user_id, kind) covers "find this user's outstanding tokens of kind X"
+# — used when re-issuing (we invalidate prior unused tokens of the same
+# kind so an attacker can't accumulate stale links).
+_CREATE_INDEX_EMAIL_TOKENS_USER_KIND = """
+CREATE INDEX IF NOT EXISTS idx_email_tokens_user_kind
+    ON email_tokens(user_id, kind, used)
+"""
+# expires_at lets the cleanup job efficiently find expired/used rows
+# without a full scan.
+_CREATE_INDEX_EMAIL_TOKENS_EXPIRES = """
+CREATE INDEX IF NOT EXISTS idx_email_tokens_expires_at
+    ON email_tokens(expires_at)
+"""
+
+
+async def init_users_email_columns(db_path: str) -> int:
+    """Idempotently add email columns to a pre-existing users table.
+    Fresh installs have the columns in CREATE TABLE; legacy installs
+    miss them until this migration runs. Returns the number of
+    columns added (0 once the migration has run on this DB).
+
+    Why no UNIQUE on the ALTER path: SQLite's ALTER TABLE ADD COLUMN
+    can't add a UNIQUE constraint to an existing column. The unique
+    invariant is enforced via the partial index (idx_users_email) we
+    create alongside, which gives us the same protection for non-NULL
+    values.
+    """
+    added: list[str] = []
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute("PRAGMA table_info(users)")
+        cols = {row["name"] for row in await cur.fetchall()}
+
+        if "email" not in cols:
+            await db.execute(
+                "ALTER TABLE users ADD COLUMN email TEXT COLLATE NOCASE"
+            )
+            added.append("email")
+        if "email_verified" not in cols:
+            await db.execute(
+                "ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0"
+            )
+            added.append("email_verified")
+        if "email_added_at" not in cols:
+            await db.execute(
+                "ALTER TABLE users ADD COLUMN email_added_at TEXT"
+            )
+            added.append("email_added_at")
+
+        # Partial unique index — enforces case-insensitive uniqueness on
+        # non-NULL emails. Multiple NULLs are allowed (legacy users
+        # without email coexist freely). Idempotent CREATE INDEX IF NOT
+        # EXISTS so safe on every boot.
+        await db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique "
+            "ON users(email COLLATE NOCASE) WHERE email IS NOT NULL"
+        )
+        await db.execute(_CREATE_INDEX_USERS_EMAIL)
+        await db.commit()
+
+    if added:
+        logger.info("users_email_columns_added", extra={"columns": added})
+    return len(added)
+
+
+async def init_email_tokens_table(db_path: str) -> None:
+    """Idempotent: creates email_tokens + indexes. Safe on every boot."""
+    async with aiosqlite.connect(db_path) as db:
+        await db.execute("PRAGMA foreign_keys = ON")
+        await db.execute(_CREATE_EMAIL_TOKENS_TABLE)
+        await db.execute(_CREATE_INDEX_EMAIL_TOKENS_USER_KIND)
+        await db.execute(_CREATE_INDEX_EMAIL_TOKENS_EXPIRES)
+        await db.commit()
+
+
+async def insert_email_token(
+    db_path: str,
+    token_hash: str,
+    user_id: int,
+    kind: str,
+    email: str,
+    expires_at_iso: str,
+) -> None:
+    """Insert one token row. Caller computes the hash + expiry; this
+    function is purely the persistence boundary so we don't bake
+    crypto/time policy into the DB layer."""
+    async with aiosqlite.connect(db_path) as db:
+        await db.execute(
+            """
+            INSERT INTO email_tokens (
+                token_hash, user_id, kind, email,
+                created_at, expires_at, used
+            ) VALUES (?, ?, ?, ?, ?, ?, 0)
+            """,
+            (token_hash, user_id, kind, email, _utcnow_iso(), expires_at_iso),
+        )
+        await db.commit()
+
+
+async def find_email_token(
+    db_path: str, token_hash: str, kind: str,
+) -> dict | None:
+    """Look up a token row by its hash + kind. Returns the row only if
+    it exists, matches the kind, hasn't been used, and hasn't expired.
+    Returns None for every other case so callers don't accidentally
+    leak whether the issue was "wrong token" vs "expired" vs "already
+    used"."""
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute(
+            """
+            SELECT token_hash, user_id, kind, email,
+                   created_at, expires_at, used
+            FROM email_tokens
+            WHERE token_hash = ? AND kind = ?
+            """,
+            (token_hash, kind),
+        )
+        row = await cur.fetchone()
+    if not row:
+        return None
+    if row["used"]:
+        return None
+    # Compare ISO strings lexicographically — works because
+    # _utcnow_iso() produces fixed-format strings (sortable).
+    if row["expires_at"] <= _utcnow_iso():
+        return None
+    return dict(row)
+
+
+async def mark_email_token_used(db_path: str, token_hash: str) -> bool:
+    """Mark a token as consumed. Returns True iff a row was updated."""
+    async with aiosqlite.connect(db_path) as db:
+        cur = await db.execute(
+            "UPDATE email_tokens SET used = 1 WHERE token_hash = ?",
+            (token_hash,),
+        )
+        await db.commit()
+        return (cur.rowcount or 0) > 0
+
+
+async def invalidate_user_email_tokens(
+    db_path: str, user_id: int, kind: str,
+) -> int:
+    """Mark all of a user's outstanding tokens of `kind` as used.
+    Called before issuing a new token so an attacker can't accumulate
+    multiple valid links from repeated reset requests. Returns count
+    of rows touched."""
+    async with aiosqlite.connect(db_path) as db:
+        cur = await db.execute(
+            """
+            UPDATE email_tokens SET used = 1
+            WHERE user_id = ? AND kind = ? AND used = 0
+            """,
+            (user_id, kind),
+        )
+        await db.commit()
+        return cur.rowcount or 0
+
+
+async def delete_expired_email_tokens(db_path: str) -> int:
+    """Reaper for the email_tokens table. Removes rows that are EITHER
+    expired OR used. Called opportunistically (e.g. on startup) to
+    keep the table from growing unboundedly. Returns deleted count."""
+    now = _utcnow_iso()
+    async with aiosqlite.connect(db_path) as db:
+        cur = await db.execute(
+            "DELETE FROM email_tokens WHERE used = 1 OR expires_at <= ?",
+            (now,),
+        )
+        await db.commit()
+        return cur.rowcount or 0
+
+
+async def update_user_email(
+    db_path: str, user_id: int, email: str,
+) -> bool:
+    """Set a user's email + stamp `email_added_at`. Resets
+    `email_verified` to 0 — a freshly-set email starts unverified
+    even if the user previously verified a different one. Returns
+    True iff a row was updated."""
+    async with aiosqlite.connect(db_path) as db:
+        cur = await db.execute(
+            """
+            UPDATE users
+            SET email = ?, email_added_at = ?, email_verified = 0
+            WHERE id = ?
+            """,
+            (email, _utcnow_iso(), user_id),
+        )
+        await db.commit()
+        return (cur.rowcount or 0) > 0
+
+
+async def mark_email_verified(db_path: str, user_id: int) -> bool:
+    """Set email_verified = 1 for the given user. Returns True iff a
+    row was updated. Idempotent — flipping an already-verified row
+    just re-sets the same value, no error."""
+    async with aiosqlite.connect(db_path) as db:
+        cur = await db.execute(
+            "UPDATE users SET email_verified = 1 WHERE id = ?",
+            (user_id,),
+        )
+        await db.commit()
+        return (cur.rowcount or 0) > 0
+
+
+async def get_user_by_email(db_path: str, email: str) -> dict | None:
+    """Case-insensitive email lookup. Returns None if not found.
+    Used by the password-reset/request flow."""
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute(
+            "SELECT * FROM users WHERE email = ? COLLATE NOCASE",
+            (email,),
+        )
+        row = await cur.fetchone()
+    return dict(row) if row else None
+
+
+async def upgrade_guest_to_user(
+    db_path:        str,
+    user_id:        int,
+    new_username:   str,
+    new_password_hash: str,
+    new_email:      str,
+) -> bool:
+    """Atomic guest → user upgrade. Updates the existing row's role,
+    username, password_hash, email, email_added_at in one statement.
+    The WHERE clause includes `role = 'guest'` as a defence-in-depth
+    check: even if a caller passes a non-guest user_id by mistake, the
+    helper will silently no-op (return False) rather than rotating a
+    real user's credentials.
+
+    Returns True iff a row was updated. Raises sqlite3.IntegrityError
+    if the new username or email collide with an existing UNIQUE row
+    — caller maps to a 409 with a Russian message.
+    """
+    async with aiosqlite.connect(db_path) as db:
+        cur = await db.execute(
+            """
+            UPDATE users
+            SET role           = 'user',
+                username       = ?,
+                password_hash  = ?,
+                email          = ?,
+                email_added_at = ?,
+                email_verified = 0
+            WHERE id = ? AND role = 'guest'
+            """,
+            (new_username, new_password_hash, new_email, _utcnow_iso(), user_id),
+        )
+        await db.commit()
+        return (cur.rowcount or 0) > 0
 
 
 async def get_scan_for_user(

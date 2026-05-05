@@ -1,0 +1,119 @@
+/* ════════════════════════════════════════════════════════════════════
+   FORK — Cookie banner
+
+   First-visit-only informational notice. Self-contained: no dependency
+   on app.css tokens or theme bootstrap, so it renders correctly on
+   /login (no theme system), /landing (different palette), and / (live
+   theme switcher). Always warm-dark — it's a transient one-time UI.
+   ════════════════════════════════════════════════════════════════════ */
+
+.cookie-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom, 12px));
+  /* z-index sits above the app's bottom nav + camera button. The brief
+     overlap is acceptable because the banner is one-time and dismissable. */
+  z-index: 9999;
+  margin: 0 auto;
+  max-width: 720px;
+
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+
+  background: rgba(36, 32, 25, 0.92);
+  backdrop-filter: saturate(140%) blur(12px);
+  -webkit-backdrop-filter: saturate(140%) blur(12px);
+  border: 1px solid rgba(198, 183, 155, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.42);
+
+  font-family: 'Figtree', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #F1E9D2;
+
+  /* Slide-up entrance: starts off-screen, transitions in when JS adds
+     .shown. Out-of-flow (position: fixed) so neighbouring elements
+     never reflow when the banner mounts or dismisses. */
+  transform: translateY(120%);
+  opacity: 0;
+  transition: transform 320ms cubic-bezier(.4, 0, .2, 1),
+              opacity   220ms ease;
+}
+.cookie-banner.shown {
+  transform: translateY(0);
+  opacity: 1;
+}
+.cookie-banner.dismissing {
+  transform: translateY(120%);
+  opacity: 0;
+  transition: transform 240ms cubic-bezier(.4, 0, .2, 1),
+              opacity   180ms ease;
+}
+
+.cookie-banner-text { flex: 1; }
+.cookie-banner-text a {
+  color: #DEB05A;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 160ms ease;
+}
+.cookie-banner-text a:hover { border-bottom-color: #DEB05A; }
+
+.cookie-banner-ok {
+  flex: 0 0 auto;
+  background: linear-gradient(135deg, #C9943A 0%, #DEB05A 100%);
+  border: none;
+  color: #1A1410;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.2px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 140ms ease, box-shadow 200ms ease;
+}
+.cookie-banner-ok:hover  { box-shadow: 0 4px 14px rgba(201, 148, 58, 0.35); }
+.cookie-banner-ok:active { transform: scale(0.97); }
+
+.cookie-banner-close {
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  color: #A89A86;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 18px;
+  line-height: 1;
+  transition: color 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.cookie-banner-close:hover { color: #F1E9D2; }
+
+@media (max-width: 480px) {
+  .cookie-banner {
+    font-size: 12.5px;
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  /* On narrow screens, push the text to a full row above the buttons
+     so it doesn't get squeezed to one short line. The OK button +
+     close cross share the second row, right-aligned. */
+  .cookie-banner-text { flex-basis: 100%; }
+  .cookie-banner-ok   { margin-left: auto; }
+}
+
+/* Respect user motion preference — fade in/out without slide. */
+@media (prefers-reduced-motion: reduce) {
+  .cookie-banner {
+    transform: none;
+    transition: opacity 180ms ease;
+  }
+  .cookie-banner.shown      { opacity: 1; transform: none; }
+  .cookie-banner.dismissing { opacity: 0; transform: none; }
+}

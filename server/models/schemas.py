@@ -272,6 +272,12 @@ class TimelineBucket(BaseModel):
 class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=32)
     password: str = Field(..., min_length=4, max_length=128)
+    # 152-ФЗ requires affirmative consent for personal data processing.
+    # Must be True; the endpoint rejects False/missing with a 422 + Russian
+    # message. Pre-Phase-1 clients that don't send this field will fail
+    # validation, which is intentional — we want to know loudly rather
+    # than silently accept a registration without consent.
+    consent: bool = Field(...)
 
 
 class LoginRequest(BaseModel):
@@ -281,13 +287,14 @@ class LoginRequest(BaseModel):
 
 class UserPublic(BaseModel):
     """The shape returned by /api/auth/me and embedded in login/register
-    responses. Never includes password_hash. `role` is 'user' | 'admin';
-    the client uses it to decide whether to show admin nav items."""
+    responses. Never includes password_hash. `role` is 'guest' | 'user'
+    | 'admin'; the client uses it to decide whether to show admin nav
+    items, the guest scan-counter chip, etc."""
     model_config = ConfigDict(extra="ignore")
 
     id:             int
     username:       str
-    role:           Literal["user", "admin"]
+    role:           Literal["guest", "user", "admin"]
     status:         Literal["active", "disabled"]
     display_name:   Optional[str] = None
     avatar_path:    Optional[str] = None
@@ -299,6 +306,12 @@ class UserPublic(BaseModel):
     created_at:     str
     last_login_at:  Optional[str] = None
     scan_count:     int = 0
+    # Phase 3.5c: surface email fields so the frontend can render the
+    # "verify your email" banner. password_hash is still filtered out
+    # by _user_dict_to_public; these fields are safe to expose to the
+    # owning user — they're already what the user sees in their inbox.
+    email:          Optional[str] = None
+    email_verified: bool = False
 
 
 class AuthResponse(BaseModel):
@@ -357,6 +370,40 @@ class DeleteAccountRequest(BaseModel):
     learning, not stored long-term."""
     password: str           = Field(..., min_length=1, max_length=128)
     reason:   Optional[str] = Field(None, max_length=500)
+
+
+class UpgradeGuestRequest(BaseModel):
+    """POST /api/auth/upgrade-guest — converts a logged-in guest to a
+    real user IN PLACE (same user_id, so guest's scans/entries/settings
+    survive). Caller's session cookie keeps working through the upgrade.
+
+    Username may match the current `guestXXXXXXXX` (PRD: "let user
+    choose to keep") OR a fresh user-chosen name. Email is required —
+    no recovery path without it. Consent is required by 152-ФЗ; the
+    endpoint also writes a consent_log row stamped with the current
+    consent version."""
+    username: str  = Field(..., min_length=1, max_length=32)
+    email:    str  = Field(..., min_length=3, max_length=320)
+    password: str  = Field(..., min_length=4, max_length=128)
+    consent:  bool = Field(...)
+
+
+class PasswordResetRequest(BaseModel):
+    """Body of POST /api/auth/password-reset/request — public.
+    The endpoint always returns 200 so the response shape never reveals
+    whether `email` is registered. Field validation is intentionally
+    lenient (just length + presence of '@'); we don't reject technically-
+    weird emails because we don't know what providers our users use."""
+    email: str = Field(..., min_length=3, max_length=320)
+
+
+class PasswordResetConfirm(BaseModel):
+    """Body of POST /api/auth/password-reset/confirm — public.
+    Token comes from the link the user clicked; new password is what
+    they typed in the reset form. Server validates password rules and
+    consumes the token in one transaction."""
+    token:        str = Field(..., min_length=20, max_length=200)
+    new_password: str = Field(..., min_length=4, max_length=128)
 
 
 class ProfileUpdate(BaseModel):

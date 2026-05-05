@@ -19,9 +19,12 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from server.config import (
-    ANTHROPIC_API_KEY, CLAUDE_JUDGE_MODEL, CLAUDE_MODEL,
-    CORS_ORIGINS, DAY_QUALITY_DAILY_CAP, DB_PATH, ENV, IS_PROD,
+    ANTHROPIC_API_KEY, APP_BASE_URL, CLAUDE_JUDGE_MODEL, CLAUDE_MODEL,
+    CONSENT_VERSION_CURRENT, CORS_ORIGINS, DAY_QUALITY_DAILY_CAP,
+    DB_PATH, ENV, GUEST_CLEANUP_ABANDONED_DAYS, GUEST_CLEANUP_TRIAL_DAYS,
+    GUEST_FREE_SCANS, GUEST_USERNAME_PREFIX, IS_PROD,
     MAX_IMAGE_SIZE_MB, MAX_SCANS_PER_USER_PER_DAY,
+    OPERATOR_CITY, OPERATOR_NAME,
     SEED_ADMIN_USERNAME, SEED_ADMIN_PASSWORD,
     SEED_SUPERADMIN_USERNAME, SEED_SUPERADMIN_PASSWORD,
     SESSION_COOKIE_NAME, SESSION_COOKIE_SAMESITE, SESSION_COOKIE_SECURE,
@@ -30,33 +33,50 @@ from server.config import (
 from server.database import (
     backfill_entries_from_scans, count_scans_for_user,
     count_user_scans_today, create_entry, create_session, create_user,
-    delete_all_user_sessions, delete_entry, delete_expired_sessions,
-    delete_session, delete_user, get_entry, get_recent_scans,
-    get_scan_count, get_scan_detail, get_scan_for_user,
-    get_scan_write_failures, get_session_with_user, get_stats,
-    get_timeline, get_user_by_id, get_user_by_username, get_user_settings,
-    get_water_log, init_db, init_entries_edit_columns, init_entries_table,
-    init_scans_cached_column, init_user_data_tables, list_all_users,
+    delete_all_user_sessions, delete_entry,
+    delete_expired_email_tokens, delete_expired_sessions,
+    delete_session, delete_user, find_email_token,
+    get_entry, get_recent_scans, get_scan_count, get_scan_detail,
+    get_scan_for_user, get_scan_write_failures, get_session_with_user,
+    get_stats, get_timeline, get_user_by_email, get_user_by_id,
+    get_user_by_username, get_user_settings, get_water_log,
+    init_consent_log_table, init_db, init_email_tokens_table,
+    init_entries_edit_columns, init_entries_table,
+    init_scans_cached_column, init_user_data_tables,
+    init_users_email_columns, insert_email_token,
+    invalidate_user_email_tokens, list_all_users,
     list_edit_log_for_entry, list_edit_log_for_scan, list_entries_for_user,
-    list_scans_for_user, migrate_scans_user_id, put_user_settings,
-    put_water_log, update_entry_with_edit_tracking, update_last_login,
-    update_user_avatar_path, update_user_password, update_user_profile,
-    update_user_role, update_user_status,
+    list_scans_for_user, mark_email_token_used, mark_email_verified,
+    migrate_scans_user_id, put_user_settings, put_water_log,
+    record_consent, update_entry_with_edit_tracking, update_last_login,
+    update_user_avatar_path, update_user_email, update_user_password,
+    update_user_profile, update_user_role, update_user_status,
+    upgrade_guest_to_user,
 )
 from server.logging_config import configure_logging, get_logger, set_request_id
 from server.models.schemas import (
     AdminResetPasswordRequest, AdminUserUpdate, AnalysisResult, AuthResponse,
     ChangePasswordRequest, DayQualityRequest, DayQualityVerdict,
     DeleteAccountRequest, EntryEditLogRecord, EntryPublic, EntryUpdate,
-    Item, LoginRequest, LookupRequest, ProfileUpdate, RegisterRequest,
+    Item, LoginRequest, LookupRequest, PasswordResetConfirm,
+    PasswordResetRequest, ProfileUpdate, RegisterRequest,
     ScanSummary, ScansListResponse, StatsResponse, TimelineBucket,
-    UserAdminPublic, UserPublic, ValidationRequestItem, ValidationVerdict,
+    UpgradeGuestRequest, UserAdminPublic, UserPublic,
+    ValidationRequestItem, ValidationVerdict,
 )
 from server.services._auth import (
-    hash_password, new_session_id, validate_password, validate_username,
-    verify_password,
+    generate_guest_password, generate_guest_username, hash_password,
+    new_session_id, validate_password, validate_username, verify_password,
 )
+from server.services._cleanup import delete_abandoned_guests
 from server.services._day_judge import judge_day_quality
+from server.services._email import send_email
+from server.services._email_templates import (
+    confirm_email_template, reset_email_template, welcome_email_template,
+)
+from server.services._email_tokens import (
+    consume_email_token, generate_email_token,
+)
 from server.services._enrichment import enrich_item
 from server.services._events import bind_emitter, unbind_emitter
 from server.services._http import close_client, open_client
@@ -134,6 +154,15 @@ async def lifespan(app: FastAPI):
         # adds updated_at / edit_count / was_edited on upgraded installs.
         await init_entries_edit_columns(DB_PATH)
         await init_user_data_tables(DB_PATH)  # Phase 3B: settings + water log
+        # Phase 1: 152-ФЗ consent audit log. Idempotent — safe on every
+        # boot, depends only on the `users` table existing (FK target).
+        await init_consent_log_table(DB_PATH)
+        # Phase 2: email columns on users + email_tokens table.
+        # init_users_email_columns must run BEFORE init_email_tokens_table
+        # since the latter has a FK to users(id) and we want both
+        # migrations to land in the same boot. Both idempotent.
+        await init_users_email_columns(DB_PATH)
+        await init_email_tokens_table(DB_PATH)
         admin = await get_user_by_username(DB_PATH, SEED_ADMIN_USERNAME)
         if admin:
             n = await backfill_entries_from_scans(DB_PATH, admin["id"])
@@ -150,6 +179,32 @@ async def lifespan(app: FastAPI):
             logger.info("expired_sessions_reaped", extra={"count": deleted})
     except Exception as e:
         logger.warning("session_reap_failed", extra={"error": str(e)})
+    # Phase 2: email-tokens reaper — same pattern. Drops expired and
+    # already-used tokens so the table doesn't grow unboundedly. Both
+    # confirm and reset tokens are short-lived (1h–24h), so the
+    # population is naturally small, but a determined account-creation
+    # attacker could otherwise burn through token rows.
+    try:
+        deleted = await delete_expired_email_tokens(DB_PATH)
+        if deleted:
+            logger.info("expired_email_tokens_reaped", extra={"count": deleted})
+    except Exception as e:
+        logger.warning("email_tokens_reap_failed", extra={"error": str(e)})
+    # Phase 3.8: guest cleanup. Hard-deletes abandoned (0 scans) +
+    # tire-kicker (<2 scans) guest rows older than the configured
+    # windows. Strict role='guest' filter — never touches real users
+    # or admins. CASCADE cleans up sessions/entries/etc; scans are
+    # preserved as orphan rows (training-data continuity).
+    try:
+        counts = await delete_abandoned_guests(
+            DB_PATH,
+            abandoned_days=GUEST_CLEANUP_ABANDONED_DAYS,
+            trial_days=GUEST_CLEANUP_TRIAL_DAYS,
+        )
+        if counts["deleted_zero_scan"] or counts["deleted_low_scan"]:
+            logger.info("guest_cleanup_complete", extra=counts)
+    except Exception as e:
+        logger.warning("guest_cleanup_failed", extra={"error": str(e)})
     await open_client()
     logger.info("startup", extra={"env": ENV, "cors_origins": CORS_ORIGINS})
     yield
@@ -327,6 +382,16 @@ async def request_lifecycle(request: Request, call_next):
 @app.post("/api/auth/register", response_model=AuthResponse)
 @limiter.limit("5/minute")
 async def auth_register(request: Request, response: Response, payload: RegisterRequest):
+    # Phase 1: 152-ФЗ requires affirmative consent BEFORE any other
+    # processing of personal data, so this check sits ahead of username
+    # uniqueness and password validation. Russian message goes straight
+    # to the client (auth-form's localizeError passes through Russian).
+    if not payload.consent:
+        raise HTTPException(
+            422,
+            "Согласие на обработку персональных данных обязательно",
+        )
+
     ok, err = validate_username(payload.username)
     if not ok:
         raise HTTPException(422, err)
@@ -353,9 +418,85 @@ async def auth_register(request: Request, response: Response, payload: RegisterR
         # and the insert. Surface the same 409 the explicit check would.
         raise HTTPException(409, "Username is already taken")
 
+    # Audit-log the consent event before issuing the session. Awaited
+    # rather than fire-and-forget — losing this row is a legal-compliance
+    # gap, not a tolerable training-data drop. The consent_version stamp
+    # is what we'll use to re-prompt users on policy v-bumps.
+    ip_addr    = get_remote_address(request)
+    user_agent = request.headers.get("user-agent", "")[:200]
+    await record_consent(
+        DB_PATH, user_id, CONSENT_VERSION_CURRENT, "registration",
+        ip_addr=ip_addr, user_agent=user_agent,
+    )
+
     # Auto-login on register: create a session and set the cookie so the
     # client can navigate straight into the app without a separate login
     # round-trip.
+    sid = new_session_id()
+    await create_session(
+        DB_PATH, sid, user_id, SESSION_LIFETIME_DAYS,
+        ip_addr=ip_addr, user_agent=user_agent,
+    )
+    await update_last_login(DB_PATH, user_id)
+    _set_session_cookie(response, sid)
+
+    user = await get_user_by_username(DB_PATH, payload.username)
+    logger.info("user_registered", extra={
+        "user_id":         user_id,
+        "username":        payload.username,
+        "consent_version": CONSENT_VERSION_CURRENT,
+    })
+    return AuthResponse(user=_user_dict_to_public(user))
+
+
+# ── Phase 3: guest accounts ──────────────────────────────────────────────
+# Auto-created hidden accounts that let first-time visitors use the
+# scanner immediately, without a registration prompt. The user_id assigned
+# here survives the upgrade to a real account, so the guest's first 5
+# scans (entries, water log, settings) carry through to their real account
+# unchanged. See PRD Phase 3 + the upgrade flow in /api/auth/upgrade-guest.
+
+
+async def _create_guest_user(request: Request) -> tuple[dict, str]:
+    """Create a guest user + session row. Returns (user_dict, session_id).
+
+    Caller is responsible for setting the session cookie on the
+    actual response they return — when a handler returns a pre-built
+    Response (FileResponse, RedirectResponse), FastAPI uses it as-is
+    and does NOT merge cookies set via `response: Response` param.
+    Returning the session_id makes the caller's cookie-attachment
+    explicit and bug-resistant.
+
+    Username is `guestXXXXXXXX` (8 hex chars after the prefix);
+    collision on the UNIQUE constraint is theoretically possible at
+    32 bits of randomness, so we retry up to 3 times before giving up.
+    Password is random and the user never sees it — upgrade rotates it.
+    """
+    last_err: Exception | None = None
+    for _attempt in range(3):
+        username = generate_guest_username(GUEST_USERNAME_PREFIX)
+        try:
+            user_id = await create_user(
+                DB_PATH, username,
+                hash_password(generate_guest_password()),
+                role="guest",
+            )
+            break
+        except sqlite3.IntegrityError as e:
+            # Almost certainly a UNIQUE collision on username. Retry
+            # with a fresh random suffix; 32-bit entropy means this
+            # converges fast in practice.
+            last_err = e
+            continue
+    else:
+        # Three retries, all collisions — astronomically unlikely with
+        # 4 billion possibilities and a small user table. Surface as 503
+        # rather than 500 because it's a transient state, not a bug.
+        logger.error("guest_create_collision_exhausted", extra={
+            "error": str(last_err) if last_err else "no error captured",
+        })
+        raise HTTPException(503, "Не удалось создать гостевой аккаунт")
+
     sid = new_session_id()
     await create_session(
         DB_PATH, sid, user_id, SESSION_LIFETIME_DAYS,
@@ -363,10 +504,142 @@ async def auth_register(request: Request, response: Response, payload: RegisterR
         user_agent=request.headers.get("user-agent", "")[:200],
     )
     await update_last_login(DB_PATH, user_id)
-    _set_session_cookie(response, sid)
 
-    user = await get_user_by_username(DB_PATH, payload.username)
-    logger.info("user_registered", extra={"user_id": user_id, "username": payload.username})
+    user = await get_user_by_id(DB_PATH, user_id)
+    logger.info("guest_created", extra={
+        "user_id": user_id,
+        # We log the username because guests are intentionally non-
+        # private (no PII attached) — useful for ops triage.
+        "username": user["username"],
+    })
+    return user, sid
+
+
+@app.post("/api/auth/upgrade-guest", response_model=AuthResponse)
+@limiter.limit("10/minute")
+async def auth_upgrade_guest(
+    request: Request, response: Response, payload: UpgradeGuestRequest,
+):
+    """Convert a guest to a real user IN PLACE. Same user_id survives,
+    so all the guest's scans, entries, water log, settings, and sessions
+    keep working unchanged. The session cookie itself doesn't rotate —
+    the session row's user_id reference is enough to keep it valid as
+    that user_id transitions from guest to user.
+
+    Validation order (matches /api/auth/register for consistency):
+      1. Caller IS a guest (403 if not — endpoint is guest-only)
+      2. Consent given (422 if false — 152-ФЗ requires before any other
+         processing of personal data)
+      3. Username + password format
+      4. Email format (basic — '@' present)
+      5. Username uniqueness (allows keeping current guest_xxx name)
+      6. Email uniqueness (case-insensitive)
+
+    A single atomic UPDATE handles the role/username/password/email
+    rotation. consent_log row is recorded after, then a confirmation
+    email is fired-and-forget so the endpoint returns fast.
+    """
+    user = await _require_user(request)
+    if user.get("role") != "guest":
+        raise HTTPException(403, "Только гостевые аккаунты можно регистрировать")
+
+    if not payload.consent:
+        raise HTTPException(
+            422, "Согласие на обработку персональных данных обязательно",
+        )
+
+    new_username = payload.username.strip()
+    ok, err = validate_username(new_username)
+    if not ok:
+        raise HTTPException(422, err)
+
+    ok, err = validate_password(payload.password)
+    if not ok:
+        raise HTTPException(422, err)
+
+    new_email = payload.email.strip()
+    if "@" not in new_email or "." not in new_email.rsplit("@", 1)[-1]:
+        raise HTTPException(422, "Неверный формат email")
+
+    # Username uniqueness — except when the user kept their current
+    # guest_xxx name (PRD: "let user choose to keep").
+    if new_username.lower() != user["username"].lower():
+        existing = await get_user_by_username(DB_PATH, new_username)
+        if existing:
+            raise HTTPException(409, "Это имя уже занято")
+
+    # Email uniqueness — anyone else holding it blocks the upgrade.
+    existing_email = await get_user_by_email(DB_PATH, new_email)
+    if existing_email and existing_email["id"] != user["id"]:
+        raise HTTPException(409, "Этот email уже используется")
+
+    # Atomic upgrade. The UNIQUE constraint on email + username catches
+    # any race-condition collision between our pre-checks and the UPDATE
+    # — caught here and surfaced as 409 with the same Russian message.
+    try:
+        upgraded = await upgrade_guest_to_user(
+            DB_PATH, user["id"], new_username,
+            hash_password(payload.password), new_email,
+        )
+    except sqlite3.IntegrityError:
+        raise HTTPException(409, "Это имя или email уже используется")
+
+    if not upgraded:
+        # WHERE role='guest' didn't match — rare race where another
+        # request upgraded the same guest first. Surface as 409 too.
+        raise HTTPException(409, "Этот аккаунт уже зарегистрирован")
+
+    # Audit-log the consent event. Awaited (not fire-and-forget) — losing
+    # this row is a 152-ФЗ compliance gap.
+    ip_addr    = get_remote_address(request)
+    user_agent = request.headers.get("user-agent", "")[:200]
+    await record_consent(
+        DB_PATH, user["id"], CONSENT_VERSION_CURRENT, "registration",
+        ip_addr=ip_addr, user_agent=user_agent,
+    )
+
+    # Send confirmation email — fire-and-forget so the endpoint returns
+    # without waiting on Unisender. The token is generated synchronously
+    # so we don't lose it if the response goes out before the task runs.
+    raw = await generate_email_token(DB_PATH, user["id"], "confirm", new_email)
+    verify_url = f"{APP_BASE_URL}/api/auth/email/verify?token={raw}"
+    tpl = confirm_email_template(verify_url)
+    asyncio.create_task(send_email(
+        to=new_email, subject=tpl["subject"],
+        html=tpl["html"], text=tpl["text"],
+    ))
+
+    fresh = await get_user_by_id(DB_PATH, user["id"])
+    logger.info("guest_upgraded_to_user", extra={
+        "user_id":        user["id"],
+        "old_username":   user["username"],
+        "new_username":   new_username,
+        # Only domain — full email could be PII for analytics
+        "email_domain":   new_email.rsplit("@", 1)[-1][:64],
+        "consent_version": CONSENT_VERSION_CURRENT,
+    })
+    return AuthResponse(user=_user_dict_to_public(fresh))
+
+
+@app.post("/api/auth/guest", response_model=AuthResponse)
+@limiter.limit("10/minute")
+async def auth_guest(request: Request, response: Response):
+    """Public endpoint — creates a guest account and returns the user.
+    Idempotency note: every call creates a NEW guest. If the caller
+    already has a valid session, this still creates a fresh guest and
+    overwrites the session cookie. Frontend should call this only when
+    /api/auth/me returned 401 — calling it on a logged-in user
+    accidentally throws away the user's session for a fresh guest one.
+    The /api/auth/guest endpoint exists alongside the auto-spawn at /
+    so explicit clients (testing, programmatic) can create guests
+    without hitting the HTML route.
+    """
+    user, sid = await _create_guest_user(request)
+    # Pydantic-model returns flow through FastAPI's response builder
+    # which DOES merge cookies set on the `response: Response` param.
+    # That's the supported path; the / route below uses a different
+    # path (FileResponse) and handles cookie attachment itself.
+    _set_session_cookie(response, sid)
     return AuthResponse(user=_user_dict_to_public(user))
 
 
@@ -415,6 +688,11 @@ async def auth_logout(request: Request, response: Response):
 @app.get("/api/auth/me", response_model=UserPublic)
 async def auth_me(request: Request):
     user = await _require_user(request)
+    # Patch in the real lifetime scan count (the stored users.scan_count
+    # column is legacy / unmaintained — never incremented by write_scan).
+    # The frontend's guest scan-counter chip reads this field, so it
+    # needs to reflect actual scan history rather than 0.
+    user["scan_count"] = await count_scans_for_user(DB_PATH, user["id"])
     return _user_dict_to_public(user)
 
 
@@ -539,6 +817,183 @@ async def change_password(
     _set_session_cookie(response, sid)
     logger.info("password_changed", extra={
         "user_id": user["id"], "username": user.get("username"),
+    })
+    return {"ok": True}
+
+
+# ── Phase 2: email-driven flows ──────────────────────────────────────────
+# Four endpoints that wire the consent_log / email_tokens / email service
+# layers together:
+#   POST /api/auth/email/request-confirmation    (auth req'd)
+#   GET  /api/auth/email/verify?token=...        (public, browser-clicked)
+#   POST /api/auth/password-reset/request        (public, anti-enumeration)
+#   POST /api/auth/password-reset/confirm        (public)
+#
+# All four use the same canonical send path: build URL → render
+# template → fire send_email(). In dev mode (EMAIL_TRANSPORT=log) the
+# emails surface in the structured log instead of being delivered, so
+# the round-trip is testable end-to-end without burning Unisender quota.
+
+
+@app.post("/api/auth/email/request-confirmation")
+@limiter.limit("3/hour")
+async def request_email_confirmation(request: Request):
+    """Send a fresh confirmation email to the current user. Requires
+    that the user has set an email and that it isn't already verified
+    — both are 400s rather than silent no-ops because they signal
+    a UI bug if hit (the client should never offer this button to a
+    user who has nothing to confirm)."""
+    user = await _require_user(request)
+
+    email = (user.get("email") or "").strip()
+    if not email:
+        raise HTTPException(400, "У этого аккаунта не задан email")
+    if user.get("email_verified"):
+        raise HTTPException(400, "Email уже подтверждён")
+
+    raw = await generate_email_token(DB_PATH, user["id"], "confirm", email)
+    verify_url = f"{APP_BASE_URL}/api/auth/email/verify?token={raw}"
+    tpl = confirm_email_template(verify_url)
+
+    sent = await send_email(
+        to=email, subject=tpl["subject"], html=tpl["html"], text=tpl["text"],
+    )
+    if not sent:
+        # send_email logs the underlying failure; don't surface details
+        # to the client (could leak Unisender errors). 503 lets the
+        # client decide whether to retry.
+        raise HTTPException(503, "Не удалось отправить письмо. Попробуйте позже.")
+
+    logger.info("email_confirm_requested", extra={"user_id": user["id"]})
+    return {"ok": True}
+
+
+@app.get("/api/auth/email/verify")
+async def verify_email(request: Request, token: str = ""):
+    """Public endpoint hit by clicking the email link. Always returns
+    a 302 redirect — never JSON — so the user always lands somewhere
+    visible regardless of token validity. Query params on the redirect
+    target tell the client whether to show a success or failure toast.
+
+    Defensive checks beyond plain token validity:
+      - User row still exists (rare race: account deleted post-issue)
+      - User's CURRENT email matches the email captured at issue time.
+        If user rotated email between request and click, the older
+        token must NOT verify the newer email.
+    """
+    fail_url = f"{APP_BASE_URL}/?verified=0"
+    ok_url   = f"{APP_BASE_URL}/?verified=1"
+
+    if not token:
+        return RedirectResponse(fail_url, status_code=302)
+
+    row = await consume_email_token(DB_PATH, token, "confirm")
+    if not row:
+        return RedirectResponse(fail_url, status_code=302)
+
+    user = await get_user_by_id(DB_PATH, row["user_id"])
+    if not user:
+        # Token was valid but user is gone — race with self-delete.
+        logger.warning("email_verify_user_missing", extra={
+            "user_id": row["user_id"],
+        })
+        return RedirectResponse(fail_url, status_code=302)
+
+    current = (user.get("email") or "").strip().lower()
+    captured = (row.get("email") or "").strip().lower()
+    if current != captured:
+        logger.warning("email_verify_email_changed_since_issue", extra={
+            "user_id": user["id"],
+        })
+        return RedirectResponse(fail_url, status_code=302)
+
+    await mark_email_verified(DB_PATH, user["id"])
+    logger.info("email_verified", extra={"user_id": user["id"]})
+
+    # Welcome email — fire-and-forget so the redirect isn't blocked on
+    # the second send. asyncio.create_task copies the current context
+    # so logging request_id stays attached.
+    welcome = welcome_email_template(f"{APP_BASE_URL}/")
+    asyncio.create_task(send_email(
+        to=user["email"], subject=welcome["subject"],
+        html=welcome["html"], text=welcome["text"],
+    ))
+
+    return RedirectResponse(ok_url, status_code=302)
+
+
+@app.post("/api/auth/password-reset/request")
+@limiter.limit("3/hour")
+async def request_password_reset(
+    request: Request, payload: PasswordResetRequest,
+):
+    """Anti-enumeration: ALWAYS returns 200. The response body shape
+    never changes whether the email exists, isn't registered, or is
+    malformed — clients can't poll this endpoint to harvest valid
+    addresses. Per-IP rate limit is applied via slowapi; per-email
+    throttling at the DB layer is deferred to the 0.5 hardening pass."""
+    email = payload.email.strip()
+    if "@" not in email:
+        # Don't reject — silent no-op. The endpoint should LOOK
+        # identical to the success path even on garbage input.
+        return {"ok": True}
+
+    user = await get_user_by_email(DB_PATH, email)
+    if user:
+        raw = await generate_email_token(DB_PATH, user["id"], "reset", email)
+        # /reset doesn't exist yet — that's a Phase 3 page. The link
+        # is still emailable; testing in Phase 2 happens via curl
+        # against /password-reset/confirm directly.
+        reset_url = f"{APP_BASE_URL}/reset?token={raw}"
+        tpl = reset_email_template(reset_url)
+
+        sent = await send_email(
+            to=email, subject=tpl["subject"],
+            html=tpl["html"], text=tpl["text"],
+        )
+        if not sent:
+            logger.warning("password_reset_email_send_failed", extra={
+                "user_id": user["id"],
+            })
+        else:
+            logger.info("password_reset_requested", extra={"user_id": user["id"]})
+    else:
+        # Don't log the full email — could be probe data. Domain only
+        # for spam-pattern analysis.
+        domain = email.rsplit("@", 1)[-1] if "@" in email else "?"
+        logger.info("password_reset_request_unknown_email", extra={
+            "email_domain": domain[:64],
+        })
+
+    return {"ok": True}
+
+
+@app.post("/api/auth/password-reset/confirm")
+@limiter.limit("5/hour")
+async def confirm_password_reset(
+    request: Request, payload: PasswordResetConfirm,
+):
+    """Validate token, validate new password, atomically swap hash +
+    invalidate every session for that user. The user must log in fresh
+    after this — we don't auto-issue a session cookie. That's safer
+    against a stolen-token attacker who'd otherwise gain a live session
+    by completing the reset themselves."""
+    ok, err = validate_password(payload.new_password)
+    if not ok:
+        raise HTTPException(422, err)
+
+    row = await consume_email_token(DB_PATH, payload.token, "reset")
+    if not row:
+        raise HTTPException(410, "Ссылка устарела или недействительна")
+
+    await update_user_password(
+        DB_PATH, row["user_id"], hash_password(payload.new_password),
+    )
+    revoked = await delete_all_user_sessions(DB_PATH, row["user_id"])
+
+    logger.info("password_reset_confirmed", extra={
+        "user_id":          row["user_id"],
+        "sessions_revoked": revoked,
     })
     return {"ok": True}
 
@@ -764,7 +1219,58 @@ async def get_scan_image(scan_id: str, request: Request):
                 ".webp": "image/webp", ".gif": "image/gif",
             }[ext]
             return FileResponse(path, media_type=media)
+    # Scan record exists, image_sha256 is set, but no file matches on
+    # disk — the file was wiped out from under us. On Railway this is the
+    # signature of the ephemeral-filesystem reset between deploys; locally
+    # it usually means manual cleanup. Logged loudly so the rate of these
+    # tells us the scope of the persistence problem.
+    logger.warning("scan_image_file_missing", extra={
+        "scan_id":      scan_id,
+        "image_sha256": img_hash,
+        "user_id":      user.get("id"),
+        "media_type":   scan.get("media_type"),
+    })
     raise HTTPException(404, "Image not found")
+
+
+async def _check_guest_scan_quota(user: dict) -> None:
+    """Phase 3: lifetime cap on guest scans. No-op for non-guests
+    (role='user' or 'admin'). When a guest has used GUEST_FREE_SCANS or
+    more lifetime scans, raises HTTPException(403) with a structured
+    detail dict the frontend can match on:
+
+        {"code": "REGISTRATION_REQUIRED",
+         "message": "Зарегистрируйтесь чтобы продолжить...",
+         "free_scans": 5, "used": 5}
+
+    Lifetime count comes from the scans table, NOT entries — even if a
+    guest deletes their entries, the underlying scan rows persist and
+    count against the quota. That's by design: the quota is "sessions
+    of AI cost we've extended to this guest", not "items currently in
+    their history".
+    """
+    if user.get("role") != "guest":
+        return
+    lifetime_count = await count_scans_for_user(DB_PATH, user["id"])
+    if lifetime_count >= GUEST_FREE_SCANS:
+        logger.info("guest_scan_quota_hit", extra={
+            "user_id":        user["id"],
+            "username":       user.get("username"),
+            "lifetime_count": lifetime_count,
+            "cap":            GUEST_FREE_SCANS,
+        })
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code":       "REGISTRATION_REQUIRED",
+                "message":    (
+                    f"Зарегистрируйтесь чтобы продолжить — "
+                    f"ваши {GUEST_FREE_SCANS} бесплатных сканов сохранятся."
+                ),
+                "free_scans": GUEST_FREE_SCANS,
+                "used":       lifetime_count,
+            },
+        )
 
 
 @app.post("/api/analyze", response_model=AnalysisResult)
@@ -777,6 +1283,11 @@ async def analyze(
     # Session-required. Without this, an attacker who's never logged in
     # can still hit /api/analyze directly via curl and burn the API key.
     user = await _require_user(request)
+
+    # Phase 3: guest lifetime scan cap — fires BEFORE any expensive work
+    # so a 6th-scan attempt by a guest is rejected with no Anthropic
+    # round-trip and no DB write.
+    await _check_guest_scan_quota(user)
 
     # User-supplied free text flows into the Sonnet prompt — strip control
     # chars, prompt-injection markers ("###", "[INST]", "<|...|>"), collapse
@@ -920,6 +1431,11 @@ async def analyze_stream(
     portion_hint: str | None = Form(default=None),
 ):
     user = await _require_user(request)
+
+    # Same Phase 3 guest-quota gate as /api/analyze, fires before
+    # everything else so a 6th-scan attempt costs nothing.
+    await _check_guest_scan_quota(user)
+
     portion_hint = sanitize_for_prompt(portion_hint, max_len=200) or None
 
     # Same daily-cap guard as /api/analyze. Admins exempt.
@@ -1472,17 +1988,59 @@ async def admin_delete_user(user_id: int, request: Request):
     return {"ok": True, "deleted_user_id": user_id}
 
 
+def _looks_like_browser(user_agent: str) -> bool:
+    """Heuristic: does this UA look like a real browser? Used by the /
+    route to decide whether to auto-spawn a guest (browser → yes) or
+    redirect to /login (curl, scripts, bots → no). False positives
+    create stray guest rows the nightly cleanup will sweep; false
+    negatives just deliver /login to a confused real user, who can
+    still log in / register manually.
+
+    Most browsers (even ancient ones) include 'mozilla' in their UA
+    for legacy-compatibility reasons. The other tokens cover the rare
+    cases (e.g. some old IE forks, exotic mobile browsers).
+    """
+    if not user_agent:
+        return False
+    ua = user_agent.lower()
+    return any(marker in ua for marker in (
+        "mozilla", "webkit", "chrome", "firefox",
+        "safari", "edge", "trident", "gecko", "opera",
+    ))
+
+
 @app.get("/")
-async def root(request: Request):
-    """Auth gate for the main app. No session → /login. Username `0`
-    going to / is allowed (they have role='admin' but they may have
-    navigated here intentionally); the post-login auto-redirect to
-    /admin happens client-side based on the response of /api/auth/login.
+async def root(request: Request, response: Response):
+    """Auth gate for the main app.
+      - Existing session → serve the app. Username `0` going to / is
+        allowed (they have role='admin' but may navigate here
+        intentionally); the post-login auto-redirect to /admin happens
+        client-side based on the response of /api/auth/login.
+      - No session + looks-like-browser → auto-spawn a guest and serve
+        the app. First-time visitors land directly in the scanner
+        instead of seeing /login. Their 5 free scans accumulate against
+        this guest user_id; upgrading to a real account preserves
+        the id (and therefore the scans, entries, settings, water log).
+      - No session + non-browser → existing redirect to /login. Curl,
+        scripts, and bots get the friendly URL hint without polluting
+        the users table with throwaway guest rows.
     """
     user = await _get_request_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    return FileResponse("static/index.html")
+    if user:
+        return FileResponse("static/index.html")
+
+    if _looks_like_browser(request.headers.get("user-agent", "")):
+        # Build the FileResponse first, then attach the session cookie
+        # DIRECTLY to it. FastAPI's `response: Response` cookie merging
+        # only fires when FastAPI builds the response itself (e.g. from
+        # a Pydantic return); pre-built Response subclasses are used
+        # as-is, with cookies set on the `response` param dropped.
+        _user, sid = await _create_guest_user(request)
+        file_resp = FileResponse("static/index.html")
+        _set_session_cookie(file_resp, sid)
+        return file_resp
+
+    return RedirectResponse("/login", status_code=302)
 
 
 @app.get("/login")
@@ -1501,6 +2059,48 @@ async def login_page(request: Request):
 @app.get("/landing")
 async def landing():
     return FileResponse("static/landing/index.html")
+
+
+@app.get("/reset")
+async def reset_page():
+    """Phase 3.7 — password reset page. Public route. The password-
+    reset email contains a link to /reset?token=X; this serves the SPA
+    that POSTs the token + new password to /api/auth/password-reset/
+    confirm. The page itself reads ?token from the URL client-side, so
+    no server-side token validation happens here — the SPA shows an
+    "expired link" card on 410 from the API."""
+    return FileResponse("static/reset/index.html")
+
+
+# ── Phase 1: legal pages (public, no auth) ────────────────────────────────
+# /privacy and /terms are stable URLs required by 152-ФЗ — they MUST be
+# reachable without a session cookie so unregistered visitors can read
+# the policy before consenting at /login. The static HTML embeds
+# placeholder spans (data-legal="operator_name" etc.) that the page
+# fills on load by fetching /api/legal/info — keeps the policy text
+# editable in one HTML file while operator info lives in env vars.
+
+
+@app.get("/api/legal/info")
+async def legal_info():
+    """Operator + consent-version metadata. Public — no PII here, just
+    the legally-required disclosure. Pages render this with one fetch
+    call on load instead of a server-side template engine."""
+    return {
+        "operator_name":    OPERATOR_NAME,
+        "operator_city":    OPERATOR_CITY,
+        "consent_version":  CONSENT_VERSION_CURRENT,
+    }
+
+
+@app.get("/privacy")
+async def privacy_page():
+    return FileResponse("static/privacy/index.html")
+
+
+@app.get("/terms")
+async def terms_page():
+    return FileResponse("static/terms/index.html")
 
 
 @app.get("/admin")

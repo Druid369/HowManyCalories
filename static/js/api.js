@@ -85,7 +85,17 @@ async function analyzeFood(blob, portionHint, opts) {
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const msg = typeof err.detail === 'object' ? err.detail.message : (err.detail || 'Analysis failed');
-    throw new Error(msg);
+    const e = new Error(msg);
+    // Phase 3: surface the structured `code` from the server's detail
+    // (e.g. "REGISTRATION_REQUIRED" on the 6th-scan gate) so the caller
+    // can open the upgrade sheet instead of just showing a generic
+    // error toast. If detail is a plain string, code stays undefined.
+    if (typeof err.detail === 'object' && err.detail) {
+      e.code   = err.detail.code;
+      e.status = res.status;
+      e.detail = err.detail;
+    }
+    throw e;
   }
   return res.json();
 }
@@ -117,15 +127,27 @@ async function analyzeImageStream(blob, portionHint, onEvent, abortSignal) {
 
   if (!res.ok) {
     let detail = `Server returned ${res.status}`;
+    let code, detailObj;
     try {
       const j = await res.json();
       if (j && j.detail) {
-        detail = typeof j.detail === 'string'
-          ? j.detail
-          : (j.detail.message || JSON.stringify(j.detail));
+        if (typeof j.detail === 'string') {
+          detail = j.detail;
+        } else {
+          // Structured detail (e.g. {code: "REGISTRATION_REQUIRED", message: "..."})
+          detail = j.detail.message || JSON.stringify(j.detail);
+          code = j.detail.code;
+          detailObj = j.detail;
+        }
       }
     } catch { /* response wasn't JSON; keep generic message */ }
-    throw new Error(detail);
+    const e = new Error(detail);
+    if (code !== undefined) {
+      e.code   = code;
+      e.status = res.status;
+      e.detail = detailObj;
+    }
+    throw e;
   }
 
   if (!res.body) {
