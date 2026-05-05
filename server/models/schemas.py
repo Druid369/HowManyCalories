@@ -285,6 +285,15 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=128)
 
 
+class EmailChangeRequest(BaseModel):
+    """Phase 6c body for POST /api/auth/email/change. Current-password
+    is required because email is the recovery channel — confirming the
+    actor knows the active password is the floor for changing where
+    future password resets are sent."""
+    email:            str = Field(..., min_length=3, max_length=320)
+    current_password: str = Field(..., min_length=1, max_length=128)
+
+
 class UserPublic(BaseModel):
     """The shape returned by /api/auth/me and embedded in login/register
     responses. Never includes password_hash. `role` is 'guest' | 'user'

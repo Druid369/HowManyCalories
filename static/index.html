@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/app.css?v=20260505-phase6b">
+  <link rel="stylesheet" href="/static/css/app.css?v=20260505-phase6c">
   <link rel="stylesheet" href="/static/css/cookie-banner.css?v=20260504-1">
 </head>
 <body>
@@ -1144,15 +1144,37 @@
         <h2 class="acct-settings-sheet-title">Настройки аккаунта</h2>
         <div class="acct-settings-id-badge" id="acctSettingsIdBadge"></div>
 
-        <!-- Email row (hidden if user has no email) -->
-        <div class="acct-settings-email-row" id="acctSettingsEmailRow" hidden>
+        <!-- Email row — always visible. Phase 6c made the empty state
+             a real first-class entry (no email → "Не задан" + Добавить
+             button), removing the prior 'hidden' attribute. JS swaps
+             the value text, pill visibility, button labels, and which
+             of the two action buttons (Подтвердить / Изменить) is
+             shown based on user.email + user.email_verified. -->
+        <div class="acct-settings-email-row" id="acctSettingsEmailRow">
           <div class="acct-settings-email-info">
             <div class="acct-settings-row-label">Email</div>
-            <div class="acct-settings-email-value" id="acctSettingsEmailValue">—</div>
+            <div class="acct-settings-email-value" id="acctSettingsEmailValue">Не задан</div>
           </div>
           <div class="acct-settings-email-state">
-            <span class="acct-settings-pill" id="acctSettingsEmailPill" data-state="unverified">Не подтверждён</span>
-            <button class="acct-settings-confirm-btn" id="btnAcctSettingsConfirmEmail" type="button">Подтвердить</button>
+            <span class="acct-settings-pill" id="acctSettingsEmailPill" data-state="unverified" hidden>Не подтверждён</span>
+            <button class="acct-settings-confirm-btn" id="btnAcctSettingsConfirmEmail" type="button" hidden>Подтвердить</button>
+            <button class="acct-settings-edit-btn" id="btnAcctSettingsEditEmail" type="button">Добавить</button>
+          </div>
+        </div>
+
+        <!-- Email edit/add inline form (Phase 6c). Reuses the
+             account-advanced-form CSS pattern from the change-password
+             disclosure for consistency. .open class slides it in. -->
+        <div class="account-advanced-form" id="acctSettingsEmailEditForm">
+          <div class="account-advanced-form-inner">
+            <div class="account-pw-field">
+              <input type="email" id="acctSettingsEmailInput" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="Email">
+            </div>
+            <div class="account-pw-field">
+              <input type="password" id="acctSettingsEmailEditPassword" autocomplete="current-password" placeholder="Текущий пароль">
+            </div>
+            <p class="acct-settings-form-hint">Подтверждение придёт на новый email — ссылка действует 24 часа.</p>
+            <button class="account-pw-submit" id="btnAcctSettingsEmailSave" type="button">Сохранить</button>
           </div>
         </div>
 
@@ -1396,7 +1418,7 @@
   <script src="/static/js/spring.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/storage.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/api.js?v=20260505-phase35b-trigger"></script>
-  <script src="/static/js/app.js?v=20260505-phase6b"></script>
+  <script src="/static/js/app.js?v=20260505-phase6c"></script>
   <script src="/static/js/cookie-banner.js?v=20260504-1" defer></script>
 </body>
 </html>

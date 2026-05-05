@@ -59,7 +59,8 @@ from server.logging_config import configure_logging, get_logger, set_request_id
 from server.models.schemas import (
     AdminResetPasswordRequest, AdminUserUpdate, AnalysisResult, AuthResponse,
     ChangePasswordRequest, DayQualityRequest, DayQualityVerdict,
-    DeleteAccountRequest, EntryEditLogRecord, EntryPublic, EntryUpdate,
+    DeleteAccountRequest, EmailChangeRequest, EntryEditLogRecord,
+    EntryPublic, EntryUpdate,
     Item, LoginRequest, LookupRequest, PasswordResetConfirm,
     PasswordResetRequest, ProfileUpdate, RegisterRequest,
     ScanSummary, ScansListResponse, StatsResponse, TimelineBucket,
@@ -1015,6 +1016,65 @@ async def request_email_confirmation(request: Request):
 
     logger.info("email_confirm_requested", extra={"user_id": user["id"]})
     return {"ok": True}
+
+
+@app.post("/api/auth/email/change", response_model=UserPublic)
+@limiter.limit("5/hour")
+async def change_email(request: Request, payload: EmailChangeRequest):
+    """Phase 6c: set or change a user's email. Requires the current
+    password (email is the recovery channel — confirming the actor
+    knows the active password is the floor for redirecting where future
+    resets land). On success: writes the new address with email_verified=0,
+    invalidates prior confirm tokens, issues a fresh one, sends the
+    confirmation email. The user remains logged in throughout.
+
+    Same endpoint serves both 'add email' (legacy admin/0/grandfathered
+    accounts that have no email yet) and 'change email' (typo fix /
+    user moved providers) - the underlying DB update is identical
+    (UPDATE users SET email=?, email_verified=0, email_added_at=?)."""
+    user = await _require_user(request)
+
+    if not verify_password(payload.current_password, user["password_hash"]):
+        raise HTTPException(401, "Неверный текущий пароль")
+
+    new_email = payload.email.strip().lower()
+    if "@" not in new_email or "." not in new_email or len(new_email) < 5:
+        raise HTTPException(422, "Некорректный формат email")
+
+    other = await get_user_by_email(DB_PATH, new_email)
+    if other and other["id"] != user["id"]:
+        raise HTTPException(409, "Этот email уже используется")
+
+    # Same email + already verified - nothing to do; treat as success.
+    cur_email = (user.get("email") or "").lower()
+    if cur_email == new_email and user.get("email_verified"):
+        return _user_dict_to_public(user)
+
+    await update_user_email(DB_PATH, user["id"], new_email)
+
+    # Issue + send confirm. generate_email_token already invalidates any
+    # prior unused confirm tokens for this user, so an attacker who
+    # triggered N rapid changes can't accumulate N valid links.
+    raw = await generate_email_token(DB_PATH, user["id"], "confirm", new_email)
+    verify_url = f"{APP_BASE_URL}/api/auth/email/verify?token={raw}"
+    tpl = confirm_email_template(verify_url)
+    sent = await send_email(
+        to=new_email, subject=tpl["subject"], html=tpl["html"], text=tpl["text"],
+    )
+    if not sent:
+        # Email update succeeded; sending failed. The user can hit the
+        # 'request-confirmation' endpoint manually from the same UI.
+        # Surface a soft warning, not a 503 - the change itself stuck.
+        logger.warning("email_change_send_failed", extra={"user_id": user["id"]})
+
+    fresh = await get_user_by_id(DB_PATH, user["id"])
+    logger.info("email_changed", extra={
+        "user_id":      user["id"],
+        "is_first_set": cur_email == "",
+        # Only domain in logs - full email is PII for analytics.
+        "email_domain": new_email.rsplit("@", 1)[-1][:64],
+    })
+    return _user_dict_to_public(fresh)
 
 
 @app.get("/api/auth/email/verify")

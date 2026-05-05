@@ -7224,6 +7224,35 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
 }
 .acct-settings-confirm-btn[hidden] { display: none; }
 
+/* Phase 6c: Изменить / Добавить email button — same shape as the
+   confirm-btn but a touch quieter (no border, just a tap-target with
+   subtle text color). Sits beside the pill / confirm-btn. */
+.acct-settings-edit-btn {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+}
+.acct-settings-edit-btn:hover {
+  color: var(--t1);
+  background: rgba(198, 183, 155, 0.06);
+}
+.acct-settings-edit-btn[hidden] { display: none; }
+
+/* Phase 6c: small hint text inside the email-edit form, sits between
+   the password input and the Сохранить button. */
+.acct-settings-form-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--t3);
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
 .acct-settings-error {
   margin: 0;
   min-height: 16px;

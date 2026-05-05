@@ -2952,6 +2952,13 @@ const helpSheet               = $('helpSheet');
 const btnAccountAboutEntry    = $('btnAccountAboutEntry');
 const btnAccountHelpEntry     = $('btnAccountHelpEntry');
 
+// Phase 6c — Email change/add element references.
+const btnAcctSettingsEditEmail    = $('btnAcctSettingsEditEmail');
+const acctSettingsEmailEditForm   = $('acctSettingsEmailEditForm');
+const acctSettingsEmailInput      = $('acctSettingsEmailInput');
+const acctSettingsEmailEditPw     = $('acctSettingsEmailEditPassword');
+const btnAcctSettingsEmailSave    = $('btnAcctSettingsEmailSave');
+
 // Activity-level → human label (Russian) map. Used by the
 // "selected name appears below the icon row" pattern.
 const ACTIVITY_LABELS_RU = {
@@ -3247,16 +3254,29 @@ function populateAcctSettingsSheet(user) {
     acctSettingsIdBadge.textContent = user.id ? '#' + String(user.id).padStart(6, '0') : '';
   }
   if (!acctSettingsEmailRow) return;
+  // Phase 6c: email row is always visible. Three states driven by JS:
+  //   no email      -> "Не задан"   + Добавить
+  //   has, unverif  -> address + Не подтверждён pill + Подтвердить + Изменить
+  //   has, verified -> address + Подтверждён pill              + Изменить
   const hasEmail = !!(user.email && String(user.email).trim());
-  acctSettingsEmailRow.hidden = !hasEmail;
-  if (!hasEmail) return;
-  if (acctSettingsEmailValue) acctSettingsEmailValue.textContent = user.email;
-  const verified = !!user.email_verified;
+  const verified = hasEmail && !!user.email_verified;
+  if (acctSettingsEmailValue) {
+    acctSettingsEmailValue.textContent = hasEmail ? user.email : 'Не задан';
+  }
   if (acctSettingsEmailPill) {
+    acctSettingsEmailPill.hidden = !hasEmail;
     acctSettingsEmailPill.textContent = verified ? 'Подтверждён' : 'Не подтверждён';
     acctSettingsEmailPill.dataset.state = verified ? 'verified' : 'unverified';
   }
-  if (btnAcctSettingsConfirmEmail) btnAcctSettingsConfirmEmail.hidden = verified;
+  if (btnAcctSettingsConfirmEmail) {
+    btnAcctSettingsConfirmEmail.hidden = !hasEmail || verified;
+  }
+  if (btnAcctSettingsEditEmail) {
+    btnAcctSettingsEditEmail.textContent = hasEmail ? 'Изменить' : 'Добавить';
+  }
+  // Always close the edit form on populate so a stale half-typed state
+  // doesn't linger across sheet open / refresh-after-save.
+  if (acctSettingsEmailEditForm) acctSettingsEmailEditForm.classList.remove('open');
 }
 
 function openAcctSettingsSheet() {
@@ -4561,6 +4581,77 @@ function setupAccount() {
       haptic(4);
     });
   });
+  // Phase 6c — Email change/add. The Изменить / Добавить button toggles
+  // an inline form (matching the change-password disclosure pattern).
+  // Submit calls /api/auth/email/change with the new email + current
+  // password; on success refreshMeAndApply re-renders the row and the
+  // populate-on-open handler closes the form.
+  if (btnAcctSettingsEditEmail && acctSettingsEmailEditForm) {
+    btnAcctSettingsEditEmail.addEventListener('click', () => {
+      const open = !acctSettingsEmailEditForm.classList.contains('open');
+      acctSettingsEmailEditForm.classList.toggle('open', open);
+      if (open) {
+        if (acctSettingsEmailInput) {
+          acctSettingsEmailInput.value = (_hmcCurrentUser && _hmcCurrentUser.email) || '';
+        }
+        if (acctSettingsEmailEditPw) acctSettingsEmailEditPw.value = '';
+        setTimeout(() => acctSettingsEmailInput && acctSettingsEmailInput.focus(), 220);
+      }
+      setAcctSettingsError('');
+      haptic(4);
+    });
+  }
+  if (btnAcctSettingsEmailSave) {
+    btnAcctSettingsEmailSave.addEventListener('click', async () => {
+      if (!acctSettingsEmailInput || !acctSettingsEmailEditPw) return;
+      const email = acctSettingsEmailInput.value.trim();
+      const pw    = acctSettingsEmailEditPw.value;
+      if (!email || !email.includes('@') || !email.includes('.')) {
+        setAcctSettingsError('Введите корректный email');
+        return;
+      }
+      if (!pw) {
+        setAcctSettingsError('Введите текущий пароль');
+        return;
+      }
+      btnAcctSettingsEmailSave.disabled = true;
+      setAcctSettingsError('');
+      try {
+        const res = await fetch('/api/auth/email/change', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, current_password: pw }),
+        });
+        if (res.ok) {
+          if (typeof refreshMeAndApply === 'function') await refreshMeAndApply();
+          haptic([8, 30, 8]);
+          showInfo({
+            title: 'Email сохранён',
+            body:  'Подтвердите его — мы отправили ссылку на ' + email + '.',
+            confirmText: 'Хорошо',
+            icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><polyline points="5 12 10 17 19 7"/></svg>',
+            dismissMs: 2400,
+          });
+        } else if (res.status === 401) {
+          setAcctSettingsError('Неверный текущий пароль');
+        } else if (res.status === 409) {
+          setAcctSettingsError('Этот email уже используется');
+        } else if (res.status === 422) {
+          setAcctSettingsError('Некорректный email');
+        } else if (res.status === 429) {
+          setAcctSettingsError('Слишком часто — попробуйте позже');
+        } else {
+          setAcctSettingsError('Не удалось сохранить email');
+        }
+      } catch {
+        setAcctSettingsError('Сетевая ошибка');
+      } finally {
+        btnAcctSettingsEmailSave.disabled = false;
+      }
+    });
+  }
+
   if (btnAcctSettingsConfirmEmail) {
     btnAcctSettingsConfirmEmail.addEventListener('click', async () => {
       if (btnAcctSettingsConfirmEmail.disabled) return;
