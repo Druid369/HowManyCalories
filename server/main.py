@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 from pydantic import ValidationError
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -2261,6 +2261,24 @@ async def privacy_page():
 @app.get("/terms")
 async def terms_page():
     return FileResponse("static/terms/index.html")
+
+
+# robots.txt — keep crawlers off authenticated/private surfaces. The
+# marketing landing, /, /privacy, /terms remain crawlable so the public
+# site can be indexed once myfork.ru is live.
+_ROBOTS_TXT = (
+    "User-agent: *\n"
+    "Disallow: /api/\n"
+    "Disallow: /admin\n"
+    "Disallow: /admin/\n"
+    "Disallow: /login\n"
+    "Disallow: /reset\n"
+)
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+async def robots_txt():
+    return PlainTextResponse(_ROBOTS_TXT, media_type="text/plain; charset=utf-8")
 
 
 @app.get("/admin")
