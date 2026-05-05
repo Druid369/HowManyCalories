@@ -23,6 +23,8 @@ from server.config import (
     CONSENT_VERSION_CURRENT, CORS_ORIGINS, DAY_QUALITY_DAILY_CAP,
     DB_PATH, ENV, GUEST_CLEANUP_ABANDONED_DAYS, GUEST_CLEANUP_TRIAL_DAYS,
     GUEST_FREE_SCANS, GUEST_USERNAME_PREFIX, IS_PROD,
+    LOGIN_THROTTLE_LOCK_SEC, LOGIN_THROTTLE_MAX_FAILS,
+    LOGIN_THROTTLE_WINDOW_SEC,
     MAX_IMAGE_SIZE_MB, MAX_SCANS_PER_USER_PER_DAY,
     OPERATOR_CITY, OPERATOR_NAME,
     SEED_ADMIN_USERNAME, SEED_ADMIN_PASSWORD,
@@ -292,6 +294,43 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # circuit-breaker. Each Railway dyno keeps its own counter; on horizontal
 # scale-out the effective cap is N × DAY_QUALITY_DAILY_CAP.
 _day_quality_state: dict = {"count": 0, "reset_at": None}
+
+
+# Sliding-window failure log per (lowercased) username. Each entry is a
+# float monotonic timestamp of a 401 from /api/auth/login. The bucket is
+# pruned on read. Empty buckets stay in the dict (a few KB even at
+# pessimistic counts), good enough for a single-process app.
+_failed_login_attempts: dict[str, list[float]] = {}
+
+
+def _login_throttle_check(username: str) -> int | None:
+    """Return seconds until unlock if `username` is locked, else None.
+    Side effect: prunes stale entries from the bucket on read."""
+    key = username.lower()
+    bucket = _failed_login_attempts.get(key)
+    if not bucket:
+        return None
+    now = time.monotonic()
+    cutoff = now - LOGIN_THROTTLE_WINDOW_SEC
+    bucket = [t for t in bucket if t > cutoff]
+    _failed_login_attempts[key] = bucket
+    if len(bucket) >= LOGIN_THROTTLE_MAX_FAILS:
+        # Lock until LOCK_SEC after the most recent failure — each new
+        # attempt during the lock extends it (the desired behavior for
+        # active brute-force).
+        wait = int(LOGIN_THROTTLE_LOCK_SEC - (now - bucket[-1]))
+        if wait > 0:
+            return wait
+    return None
+
+
+def _login_throttle_record_failure(username: str) -> None:
+    bucket = _failed_login_attempts.setdefault(username.lower(), [])
+    bucket.append(time.monotonic())
+
+
+def _login_throttle_clear(username: str) -> None:
+    _failed_login_attempts.pop(username.lower(), None)
 
 
 def _check_day_quality_cap() -> tuple[bool, int]:
@@ -721,17 +760,32 @@ async def auth_guest(request: Request, response: Response):
 @app.post("/api/auth/login", response_model=AuthResponse)
 @limiter.limit("5/minute")
 async def auth_login(request: Request, response: Response, payload: LoginRequest):
+    locked_for = _login_throttle_check(payload.username)
+    if locked_for is not None:
+        logger.warning("login_throttle_locked", extra={
+            "username": payload.username[:64], "wait_sec": locked_for,
+        })
+        raise HTTPException(
+            status_code=429,
+            detail=f"Слишком много неудачных попыток. Попробуйте через {locked_for // 60 + 1} мин.",
+            headers={"Retry-After": str(locked_for)},
+        )
+
     user = await get_user_by_username(DB_PATH, payload.username)
     # Single 401 path for "no such user" and "wrong password" — don't leak
     # which one was wrong via the error message. (Timing-channel hardening
     # via a dummy bcrypt verify on the no-user branch is deferred — at
     # 5/min/IP the wall-time signal is too narrow to be exploitable.)
     if not user:
+        _login_throttle_record_failure(payload.username)
         raise HTTPException(401, "Invalid username or password")
     if user.get("status") != "active":
         raise HTTPException(403, "This account is disabled")
     if not verify_password(payload.password, user["password_hash"]):
+        _login_throttle_record_failure(payload.username)
         raise HTTPException(401, "Invalid username or password")
+
+    _login_throttle_clear(payload.username)
 
     sid = new_session_id()
     await create_session(

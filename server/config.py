@@ -131,6 +131,18 @@ GUEST_CLEANUP_TRIAL_DAYS    = int(os.getenv("GUEST_CLEANUP_TRIAL_DAYS", "7"))
 # their guestXXXXXXXX name without us special-casing the validator.
 GUEST_USERNAME_PREFIX       = os.getenv("GUEST_USERNAME_PREFIX", "guest")
 
+# ── Phase 0.5: per-username login throttle ────────────────────────────────
+# slowapi's per-IP rate limit on /api/auth/login is bypassable by an
+# attacker rotating residential proxies. This adds a per-username throttle
+# that locks an account briefly after too many failed attempts in a
+# sliding window. Default: 10 fails in 15 minutes → lock for 5 minutes.
+# Successful login clears the bucket. State is in-memory (single-process
+# app); restart-as-unlock is acceptable since attempts that survive a
+# restart still face slow bcrypt + per-IP throttling.
+LOGIN_THROTTLE_MAX_FAILS  = int(os.getenv("LOGIN_THROTTLE_MAX_FAILS",  "10"))
+LOGIN_THROTTLE_WINDOW_SEC = int(os.getenv("LOGIN_THROTTLE_WINDOW_SEC", "900"))
+LOGIN_THROTTLE_LOCK_SEC   = int(os.getenv("LOGIN_THROTTLE_LOCK_SEC",   "300"))
+
 # ── CORS ───────────────────────────────────────────────────────────────────
 # Comma-separated origins via env var; wide-open only allowed in dev.
 _cors_env = os.getenv("CORS_ORIGINS", "").strip()
