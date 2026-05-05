@@ -2952,6 +2952,14 @@ const helpSheet               = $('helpSheet');
 const btnAccountAboutEntry    = $('btnAccountAboutEntry');
 const btnAccountHelpEntry     = $('btnAccountHelpEntry');
 
+// Phase 6d.2 — sub-sheet card refs (the visual card that drags) and
+// inner scroll bodies (the element whose scrollTop tells the drag
+// handler whether it's safe to engage). Used by attachSheetDragToClose
+// in setupAccount below.
+const acctSettingsSheetCard   = $('acctSettingsSheetCard');
+const aboutSheetCard          = $('aboutSheetCard');
+const helpSheetCard           = $('helpSheetCard');
+
 // Phase 6c — Email change/add element references.
 const btnAcctSettingsEditEmail    = $('btnAcctSettingsEditEmail');
 const acctSettingsEmailEditForm   = $('acctSettingsEmailEditForm');
@@ -4571,6 +4579,25 @@ function setupAccount() {
   document.querySelectorAll('[data-help-close]').forEach(el => {
     el.addEventListener('click', closeHelpSheet);
   });
+
+  // Phase 6d.2 — swipe-down dismiss for all three sub-sheets, matching
+  // the parent settings/calendar/account sheet behavior. The X close
+  // buttons were removed in favor of this gesture (matches Eugene's
+  // expectation that all overlays in the app drag down to close).
+  // scrollTarget is each sheet's inner body so the drag only engages
+  // when the user is at the top of the scroll area.
+  if (acctSettingsSheetCard) {
+    const body = acctSettingsSheetCard.querySelector('.acct-settings-sheet-body');
+    attachSheetDragToClose(acctSettingsSheetCard, closeAcctSettingsSheet, body);
+  }
+  if (aboutSheetCard) {
+    const body = aboutSheetCard.querySelector('.about-sheet-body');
+    attachSheetDragToClose(aboutSheetCard, closeAboutSheet, body);
+  }
+  if (helpSheetCard) {
+    const body = helpSheetCard.querySelector('.help-sheet-body');
+    attachSheetDragToClose(helpSheetCard, closeHelpSheet, body);
+  }
   document.querySelectorAll('.faq-item').forEach(item => {
     const q = item.querySelector('.faq-question');
     if (!q) return;

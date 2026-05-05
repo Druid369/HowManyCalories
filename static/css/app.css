@@ -7051,9 +7051,16 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
 .acct-settings-sheet.visible .acct-settings-sheet-backdrop { opacity: 1; }
 
 .acct-settings-sheet-card {
+  /* Phase 6d.2: positioning refactored for swipe-down compatibility.
+     Was `left: 50%; transform: translate(-50%, ...)` for X-centering;
+     now `left:0; right:0; margin:0 auto` so the drag handler can
+     overwrite `transform` purely on the Y axis without losing
+     X-centering. Same pattern as the parent sheets. */
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 0;
+  margin: 0 auto;
   width: 100%;
   max-width: 480px;
   max-height: 92vh;
@@ -7062,14 +7069,15 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   box-shadow:
     0 -10px 40px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(198, 183, 155, 0.10);
-  transform: translate(-50%, 100%);
+  transform: translate3d(0, 100%, 0);
   transition: transform 380ms cubic-bezier(.4, 0, .2, 1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  touch-action: pan-y;
 }
 .acct-settings-sheet.visible .acct-settings-sheet-card {
-  transform: translate(-50%, 0);
+  transform: translate3d(0, 0, 0);
 }
 
 .acct-settings-sheet-handle {
@@ -7080,24 +7088,9 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   flex-shrink: 0;
 }
 
-.acct-settings-sheet-close {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  border: none;
-  background: transparent;
-  color: var(--t2);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-.acct-settings-sheet-close svg { width: 20px; height: 20px; }
-.acct-settings-sheet-close:hover { color: var(--t1); }
+/* Phase 6d.2: deleted .acct-settings-sheet-close rules — the X
+   button was removed from the HTML in favor of swipe-down dismiss
+   matching the parent settings/calendar/account sheet behavior. */
 
 .acct-settings-sheet-body {
   padding: 20px 22px 26px;
@@ -7251,7 +7244,7 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   .acct-settings-sheet-backdrop {
     transition: opacity 180ms ease;
   }
-  .acct-settings-sheet-card { transform: translate(-50%, 0); }
+  .acct-settings-sheet-card { transform: translate3d(0, 0, 0); }
 }
 
 
@@ -7290,9 +7283,14 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
 
 .about-sheet-card,
 .help-sheet-card {
+  /* Phase 6d.2: same positioning refactor as acct-settings-sheet-card
+     above — left:0/right:0/margin:0 auto so drag-to-close can own the
+     transform without breaking X-centering. */
   position: absolute;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: 0;
+  margin: 0 auto;
   width: 100%;
   max-width: 480px;
   max-height: 92vh;
@@ -7301,15 +7299,16 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   box-shadow:
     0 -10px 40px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(198, 183, 155, 0.10);
-  transform: translate(-50%, 100%);
+  transform: translate3d(0, 100%, 0);
   transition: transform 380ms cubic-bezier(.4, 0, .2, 1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  touch-action: pan-y;
 }
 .about-sheet.visible .about-sheet-card,
 .help-sheet.visible .help-sheet-card {
-  transform: translate(-50%, 0);
+  transform: translate3d(0, 0, 0);
 }
 
 .about-sheet-handle,
@@ -7321,27 +7320,9 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   flex-shrink: 0;
 }
 
-.about-sheet-close,
-.help-sheet-close {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  border: none;
-  background: transparent;
-  color: var(--t2);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-.about-sheet-close svg,
-.help-sheet-close svg { width: 20px; height: 20px; }
-.about-sheet-close:hover,
-.help-sheet-close:hover { color: var(--t1); }
+/* Phase 6d.2: deleted .about-sheet-close + .help-sheet-close rules.
+   Same reason as acct-settings — X buttons removed in favor of
+   swipe-down dismiss. */
 
 .about-sheet-body,
 .help-sheet-body {
@@ -7529,7 +7510,7 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
     transition: opacity 180ms ease;
   }
   .about-sheet-card,
-  .help-sheet-card { transform: translate(-50%, 0); }
+  .help-sheet-card { transform: translate3d(0, 0, 0); }
   .faq-answer { transition: none; }
   .faq-chev { transition: none; }
 }
