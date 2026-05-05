@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/app.css?v=20260505-phase5">
+  <link rel="stylesheet" href="/static/css/app.css?v=20260505-phase6a">
   <link rel="stylesheet" href="/static/css/cookie-banner.css?v=20260504-1">
 </head>
 <body>
@@ -773,15 +773,18 @@
             <span id="accountActivityCurrent" hidden></span>
           </div>
 
-          <!-- Advanced card — disclosure rows. Theme picker now lives
-               INSIDE this card as a collapsible drawer, demoting it
-               from "always visible centerpiece" to "tucked-away
-               personalization" per the mockup. -->
+          <!-- Advanced card — Phase 6a redesign. Top: theme drawer
+               (existing). Middle: 3 entry tiles routing to dedicated
+               sub-sheets (Account Settings is wired; About + Help are
+               disabled "скоро" placeholders ahead of Phase 6b). Bottom:
+               version footer with legal links. The change-password and
+               delete-account controls moved INTO the Account Settings
+               sub-sheet defined further down in this file. -->
           <div class="account-card" id="accountAdvanced">
             <div class="account-card-label">Дополнительно</div>
             <div class="account-advanced">
 
-              <!-- Theme drawer disclosure -->
+              <!-- Theme drawer disclosure (unchanged from pre-6a) -->
               <button class="account-disclosure" id="btnAccountThemeToggle" type="button" aria-expanded="false">
                 <div class="account-disclosure-left">
                   <div class="account-disclosure-icon">
@@ -820,64 +823,72 @@
                 </div>
               </div>
 
-              <!-- Change password disclosure (form below toggles open inline) -->
-              <button class="account-disclosure" id="btnAccountChangePasswordRow" type="button" aria-expanded="false">
+              <!-- Account Settings entry — opens slide-up sub-sheet -->
+              <button class="account-disclosure" id="btnAccountSettingsEntry" type="button">
                 <div class="account-disclosure-left">
                   <div class="account-disclosure-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
-                      <rect x="3" y="11" width="18" height="11" rx="2"/>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                     </svg>
                   </div>
                   <div class="account-disclosure-text">
-                    <div class="account-disclosure-title">Сменить пароль</div>
+                    <div class="account-disclosure-title">Настройки аккаунта</div>
                   </div>
                 </div>
                 <svg class="account-disclosure-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-              <!-- Outer wrapper animates via grid-template-rows; inner
-                   carries the flex-column layout, padding, and content. -->
-              <div class="account-advanced-form" id="accountChangePasswordForm">
-                <div class="account-advanced-form-inner">
-                  <div class="account-pw-field">
-                    <input type="password" id="accountCurrentPassword" autocomplete="current-password" placeholder="Текущий пароль">
-                  </div>
-                  <div class="account-pw-field">
-                    <input type="password" id="accountNewPassword" autocomplete="new-password" minlength="4" maxlength="128" placeholder="Новый пароль (мин 4)">
-                  </div>
-                  <button class="account-pw-submit" id="btnAccountChangePassword" type="button">Сохранить</button>
-                </div>
-              </div>
 
-              <!-- Delete account (danger) -->
-              <button class="account-disclosure account-disclosure-danger" id="btnAccountDelete" type="button">
+              <!-- About entry — disabled until Phase 6b ships its sheet -->
+              <button class="account-disclosure account-disclosure--coming" id="btnAccountAboutEntry" type="button" disabled aria-disabled="true">
                 <div class="account-disclosure-left">
                   <div class="account-disclosure-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="16" x2="12" y2="12"/>
+                      <line x1="12" y1="8" x2="12.01" y2="8"/>
                     </svg>
                   </div>
                   <div class="account-disclosure-text">
-                    <div class="account-disclosure-title">Удалить аккаунт</div>
+                    <div class="account-disclosure-title">О приложении</div>
+                    <div class="account-disclosure-sub">скоро</div>
                   </div>
                 </div>
               </button>
+
+              <!-- Help entry — disabled until Phase 6b ships its sheet -->
+              <button class="account-disclosure account-disclosure--coming" id="btnAccountHelpEntry" type="button" disabled aria-disabled="true">
+                <div class="account-disclosure-left">
+                  <div class="account-disclosure-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10"/>
+                      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                      <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                  </div>
+                  <div class="account-disclosure-text">
+                    <div class="account-disclosure-title">Помощь</div>
+                    <div class="account-disclosure-sub">скоро</div>
+                  </div>
+                </div>
+              </button>
+
+            </div>
+
+            <!-- Version footer — quiet metadata + legal links. Build date
+                 is hand-bumped on releases; full automation comes with
+                 the Phase 4 deploy pipeline. -->
+            <div class="account-version-footer">
+              <div class="account-version-line">FORK · v0.6 · 2026-05-05</div>
+              <div class="account-version-legal">
+                <a href="/privacy" target="_blank" rel="noopener">Политика</a>
+                <span aria-hidden="true">·</span>
+                <a href="/terms" target="_blank" rel="noopener">Условия</a>
+              </div>
             </div>
           </div>
-
-          <!-- 152-ФЗ legal links — discreet placement here is a Phase 1
-               stub. Phase 6 redesigns the Дополнительно area into a
-               dedicated Legal section inside Account Settings; until then
-               this row keeps the policy reachable from inside the app. -->
-          <p class="account-legal-row">
-            <a href="/privacy" target="_blank" rel="noopener">Политика</a>
-            <span aria-hidden="true">·</span>
-            <a href="/terms" target="_blank" rel="noopener">Условия</a>
-          </p>
 
           <div class="account-bottom-pad"></div>
         </div>
@@ -1107,12 +1118,98 @@
     </div>
   </div>
 
+  <!-- Phase 6a: Account Settings sub-sheet. Slides up over the parent
+       account sheet. Contents: account number, email + verification
+       state, change password (moved from Дополнительно card), delete
+       account (moved). The change-password and delete-account control
+       IDs are preserved so existing JS handlers keep working unchanged.
+       Email row hides itself entirely for legacy users with no email
+       on file (admin / 0 / pre-Phase-2 accounts) — see populateAcctSettingsSheet
+       in app.js. -->
+  <div class="acct-settings-sheet" id="acctSettingsSheet" aria-hidden="true">
+    <div class="acct-settings-sheet-backdrop" data-acct-settings-close></div>
+    <div class="acct-settings-sheet-card glass glass--strong" role="dialog" aria-modal="true" aria-label="Настройки аккаунта" id="acctSettingsSheetCard">
+      <div class="acct-settings-sheet-handle" aria-hidden="true"></div>
+      <button class="acct-settings-sheet-close" type="button" aria-label="Закрыть" data-acct-settings-close>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <div class="acct-settings-sheet-body">
+        <h2 class="acct-settings-sheet-title">Настройки аккаунта</h2>
+        <div class="acct-settings-id-badge" id="acctSettingsIdBadge"></div>
+
+        <!-- Email row (hidden if user has no email) -->
+        <div class="acct-settings-email-row" id="acctSettingsEmailRow" hidden>
+          <div class="acct-settings-email-info">
+            <div class="acct-settings-row-label">Email</div>
+            <div class="acct-settings-email-value" id="acctSettingsEmailValue">—</div>
+          </div>
+          <div class="acct-settings-email-state">
+            <span class="acct-settings-pill" id="acctSettingsEmailPill" data-state="unverified">Не подтверждён</span>
+            <button class="acct-settings-confirm-btn" id="btnAcctSettingsConfirmEmail" type="button">Подтвердить</button>
+          </div>
+        </div>
+
+        <!-- Change password — same IDs as the pre-6a inline disclosure
+             so handleChangePassword in app.js continues to work without
+             modification. -->
+        <button class="account-disclosure" id="btnAccountChangePasswordRow" type="button" aria-expanded="false">
+          <div class="account-disclosure-left">
+            <div class="account-disclosure-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div class="account-disclosure-text">
+              <div class="account-disclosure-title">Сменить пароль</div>
+            </div>
+          </div>
+          <svg class="account-disclosure-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+        <div class="account-advanced-form" id="accountChangePasswordForm">
+          <div class="account-advanced-form-inner">
+            <div class="account-pw-field">
+              <input type="password" id="accountCurrentPassword" autocomplete="current-password" placeholder="Текущий пароль">
+            </div>
+            <div class="account-pw-field">
+              <input type="password" id="accountNewPassword" autocomplete="new-password" minlength="4" maxlength="128" placeholder="Новый пароль (мин 4)">
+            </div>
+            <button class="account-pw-submit" id="btnAccountChangePassword" type="button">Сохранить</button>
+          </div>
+        </div>
+
+        <p class="acct-settings-error" id="acctSettingsError" aria-live="polite"></p>
+
+        <!-- Delete account (red, bottom). Same ID as before. -->
+        <button class="account-disclosure account-disclosure-danger" id="btnAccountDelete" type="button">
+          <div class="account-disclosure-left">
+            <div class="account-disclosure-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              </svg>
+            </div>
+            <div class="account-disclosure-text">
+              <div class="account-disclosure-title">Удалить аккаунт</div>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Cache-bust: bump the ?v= when shipping JS changes so iOS Safari and
        aggressive proxy caches always fetch fresh files. -->
   <script src="/static/js/spring.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/storage.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/api.js?v=20260505-phase35b-trigger"></script>
-  <script src="/static/js/app.js?v=20260505-phase5"></script>
+  <script src="/static/js/app.js?v=20260505-phase6a"></script>
   <script src="/static/js/cookie-banner.js?v=20260504-1" defer></script>
 </body>
 </html>

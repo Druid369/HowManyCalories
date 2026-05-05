@@ -2936,6 +2936,16 @@ const accountNewPassword      = $('accountNewPassword');
 const btnAccountChangePassword = $('btnAccountChangePassword');
 const btnAccountDelete        = $('btnAccountDelete');
 
+// Phase 6a — Account Settings sub-sheet element references.
+const acctSettingsSheet           = $('acctSettingsSheet');
+const acctSettingsIdBadge         = $('acctSettingsIdBadge');
+const acctSettingsEmailRow        = $('acctSettingsEmailRow');
+const acctSettingsEmailValue      = $('acctSettingsEmailValue');
+const acctSettingsEmailPill       = $('acctSettingsEmailPill');
+const btnAcctSettingsConfirmEmail = $('btnAcctSettingsConfirmEmail');
+const acctSettingsError           = $('acctSettingsError');
+const btnAccountSettingsEntry     = $('btnAccountSettingsEntry');
+
 // Activity-level → human label (Russian) map. Used by the
 // "selected name appears below the icon row" pattern.
 const ACTIVITY_LABELS_RU = {
@@ -3219,6 +3229,43 @@ function applySettingsFromInputs() {
 // 70 kg + 170 cm are reasonable starting points for an adult; 1995
 // puts the wheel ~30 years back which is a sensible center-of-mass.
 const ACCOUNT_DEFAULTS = { weight_kg: 70, height_cm: 170, birth_year: 1995 };
+
+function setAcctSettingsError(msg) {
+  if (!acctSettingsError) return;
+  acctSettingsError.textContent = msg || '';
+}
+
+function populateAcctSettingsSheet(user) {
+  if (!user) return;
+  if (acctSettingsIdBadge) {
+    acctSettingsIdBadge.textContent = user.id ? '#' + String(user.id).padStart(6, '0') : '';
+  }
+  if (!acctSettingsEmailRow) return;
+  const hasEmail = !!(user.email && String(user.email).trim());
+  acctSettingsEmailRow.hidden = !hasEmail;
+  if (!hasEmail) return;
+  if (acctSettingsEmailValue) acctSettingsEmailValue.textContent = user.email;
+  const verified = !!user.email_verified;
+  if (acctSettingsEmailPill) {
+    acctSettingsEmailPill.textContent = verified ? 'Подтверждён' : 'Не подтверждён';
+    acctSettingsEmailPill.dataset.state = verified ? 'verified' : 'unverified';
+  }
+  if (btnAcctSettingsConfirmEmail) btnAcctSettingsConfirmEmail.hidden = verified;
+}
+
+function openAcctSettingsSheet() {
+  if (!acctSettingsSheet) return;
+  setAcctSettingsError('');
+  acctSettingsSheet.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => acctSettingsSheet.classList.add('visible'));
+  document.documentElement.classList.add('acct-settings-sheet-open');
+}
+function closeAcctSettingsSheet() {
+  if (!acctSettingsSheet) return;
+  acctSettingsSheet.classList.remove('visible');
+  document.documentElement.classList.remove('acct-settings-sheet-open');
+  setTimeout(() => acctSettingsSheet.setAttribute('aria-hidden', 'true'), 400);
+}
 
 function setAccountSheetError(msg, kind) {
   if (!accountSheetError) return;
@@ -3783,6 +3830,8 @@ function populateAccountForm(user) {
   if (!user) return;
   if (accountUsernameLabel) accountUsernameLabel.textContent = user.username || '';
   if (accountIdBadge)       accountIdBadge.textContent = user.id ? '#' + String(user.id).padStart(6, '0') : '';
+  // Phase 6a: mirror id + email state into the Account Settings sub-sheet.
+  populateAcctSettingsSheet(user);
   if (accountDisplayName)   accountDisplayName.value = user.display_name || '';
   // Identity hero name mirror — populated from the same source as the
   // input below it. Empty → fallback so the hero never shows blank.
@@ -4283,25 +4332,25 @@ async function handleChangePassword() {
   if (!accountCurrentPassword || !accountNewPassword) return;
   const cur = accountCurrentPassword.value;
   const nxt = accountNewPassword.value;
-  if (!cur) { setAccountSheetError('Введите текущий пароль'); return; }
+  // Errors render in the Phase 6a sub-sheet's own error slot — change-
+  // password now lives inside that sub-sheet, not the parent account
+  // sheet.
+  if (!cur) { setAcctSettingsError('Введите текущий пароль'); return; }
   if (!nxt || nxt.length < 4) {
-    setAccountSheetError('Новый пароль: минимум 4 символа');
+    setAcctSettingsError('Новый пароль: минимум 4 символа');
     return;
   }
   if (cur === nxt) {
-    setAccountSheetError('Новый пароль совпадает с текущим');
+    setAcctSettingsError('Новый пароль совпадает с текущим');
     return;
   }
   if (btnAccountChangePassword) btnAccountChangePassword.disabled = true;
-  setAccountSheetError('');
+  setAcctSettingsError('');
   try {
     await changePassword(cur, nxt);
     accountCurrentPassword.value = '';
     accountNewPassword.value     = '';
     haptic([8, 30, 8]);
-    // Glass success popup — auto-dismisses after 1.8s, also closable
-    // via Enter/Escape/backdrop tap. Replaces the inline checkmark text
-    // which was easy to miss in the action-bar area.
     showInfo({
       title: 'Пароль обновлён',
       body: 'Используйте новый пароль при следующем входе.',
@@ -4310,7 +4359,7 @@ async function handleChangePassword() {
       dismissMs: 1800,
     });
   } catch (err) {
-    setAccountSheetError((err && err.message) || 'Не удалось сменить пароль');
+    setAcctSettingsError((err && err.message) || 'Не удалось сменить пароль');
   } finally {
     if (btnAccountChangePassword) btnAccountChangePassword.disabled = false;
   }
@@ -4405,18 +4454,15 @@ function setupAccount() {
   // toggle button + its event handler block lived here and have been
   // removed since the element no longer exists in the DOM.)
 
-  // Change-password row toggles the inline mini-form between rows.
-  // Adds .pw-open on the advanced container (so the body bumps its
-  // max-height to fit the form) AND .pw-form-open on the sheet content
-  // (so the sheet expands + allows internal scroll on small phones).
+  // Change-password row toggles its inline form open. Phase 6a moved
+  // the row + form into the Account Settings sub-sheet, so the legacy
+  // .pw-open / .pw-form-open class additions on the parent account
+  // sheet are no longer needed — the sub-sheet handles its own scroll.
   if (btnAccountChangePasswordRow && accountChangePasswordForm) {
     btnAccountChangePasswordRow.addEventListener('click', () => {
       const open = !accountChangePasswordForm.classList.contains('open');
       accountChangePasswordForm.classList.toggle('open', open);
       btnAccountChangePasswordRow.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (accountAdvancedEl) accountAdvancedEl.classList.toggle('pw-open', open);
-      const content = accountSheet.querySelector('.account-sheet-content');
-      if (content) content.classList.toggle('pw-form-open', open);
       if (open && accountCurrentPassword) {
         setTimeout(() => accountCurrentPassword.focus(), 290);
       }
@@ -4436,6 +4482,55 @@ function setupAccount() {
       if (e.key === 'Enter') { e.preventDefault(); handleChangePassword(); }
     });
   });
+
+  // Phase 6a — Account Settings sub-sheet wiring.
+  if (btnAccountSettingsEntry) {
+    btnAccountSettingsEntry.addEventListener('click', () => {
+      haptic();
+      openAcctSettingsSheet();
+    });
+  }
+  document.querySelectorAll('[data-acct-settings-close]').forEach(el => {
+    el.addEventListener('click', closeAcctSettingsSheet);
+  });
+  if (btnAcctSettingsConfirmEmail) {
+    btnAcctSettingsConfirmEmail.addEventListener('click', async () => {
+      if (btnAcctSettingsConfirmEmail.disabled) return;
+      btnAcctSettingsConfirmEmail.disabled = true;
+      const orig = btnAcctSettingsConfirmEmail.textContent;
+      btnAcctSettingsConfirmEmail.textContent = 'Отправляем…';
+      setAcctSettingsError('');
+      try {
+        const res = await fetch('/api/auth/email/request-confirmation', {
+          method: 'POST',
+          credentials: 'same-origin',
+        });
+        if (res.ok) {
+          btnAcctSettingsConfirmEmail.textContent = 'Отправлено';
+        } else if (res.status === 429) {
+          setAcctSettingsError('Слишком часто — попробуйте позже');
+          btnAcctSettingsConfirmEmail.textContent = orig;
+        } else if (res.status === 400) {
+          // Already verified or no email — refresh state so the row
+          // updates (verified pill / hide button).
+          btnAcctSettingsConfirmEmail.textContent = orig;
+          if (typeof refreshMeAndApply === 'function') await refreshMeAndApply();
+        } else {
+          setAcctSettingsError('Не получилось');
+          btnAcctSettingsConfirmEmail.textContent = orig;
+        }
+      } catch {
+        setAcctSettingsError('Сетевая ошибка');
+        btnAcctSettingsConfirmEmail.textContent = orig;
+      }
+      setTimeout(() => {
+        btnAcctSettingsConfirmEmail.disabled = false;
+        if (btnAcctSettingsConfirmEmail.textContent === 'Отправлено') {
+          btnAcctSettingsConfirmEmail.textContent = orig;
+        }
+      }, 4000);
+    });
+  }
 
   // Gender pill — radio-style.
   document.querySelectorAll('.account-gender-seg').forEach(btn => {
