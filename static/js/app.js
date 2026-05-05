@@ -3344,13 +3344,21 @@ function closeAboutSheet() {
 }
 function openHelpSheet() {
   if (!helpSheet) return;
-  // Reset all FAQ items to closed on each open so the user gets a
-  // clean state and doesn't scroll past surprising open answers.
-  helpSheet.querySelectorAll('.faq-item.open').forEach(it => {
+  // Phase 6d.5: reset all FAQ items + clear the search filter on each
+  // open so the user starts from a clean state. Selectors updated to
+  // the redesigned .help-faq-* class names.
+  helpSheet.querySelectorAll('.help-faq-item.open').forEach(it => {
     it.classList.remove('open');
-    const q = it.querySelector('.faq-question');
+    const q = it.querySelector('.help-faq-q');
     if (q) q.setAttribute('aria-expanded', 'false');
   });
+  helpSheet.querySelectorAll('.help-faq-item[hidden]').forEach(it => {
+    it.hidden = false;
+  });
+  const search = helpSheet.querySelector('#helpFaqSearchInput');
+  if (search) search.value = '';
+  const empty = helpSheet.querySelector('#helpFaqEmpty');
+  if (empty) empty.hidden = true;
   helpSheet.setAttribute('aria-hidden', 'false');
   requestAnimationFrame(() => helpSheet.classList.add('visible'));
   document.documentElement.classList.add('help-sheet-open');
@@ -4746,16 +4754,45 @@ function setupAccount() {
   if (legalModalSheet) {
     attachSheetDragToClose(legalModalSheet, closeLegal, legalModalContent);
   }
-  document.querySelectorAll('.faq-item').forEach(item => {
-    const q = item.querySelector('.faq-question');
+  // Phase 6d.5: FAQ accordion (single-open behavior matching the
+  // redesign — opening one auto-closes any other open). Selectors
+  // updated to .help-faq-item / .help-faq-q. Plus a live substring
+  // search filter that matches against question + answer text.
+  const helpFaqItems = document.querySelectorAll('.help-faq-item');
+  helpFaqItems.forEach(item => {
+    const q = item.querySelector('.help-faq-q');
     if (!q) return;
     q.addEventListener('click', () => {
-      const open = !item.classList.contains('open');
-      item.classList.toggle('open', open);
-      q.setAttribute('aria-expanded', open ? 'true' : 'false');
+      const wasOpen = item.classList.contains('open');
+      // Close all others (single-open accordion).
+      helpFaqItems.forEach(other => {
+        if (other !== item) {
+          other.classList.remove('open');
+          const oq = other.querySelector('.help-faq-q');
+          if (oq) oq.setAttribute('aria-expanded', 'false');
+        }
+      });
+      item.classList.toggle('open', !wasOpen);
+      q.setAttribute('aria-expanded', !wasOpen ? 'true' : 'false');
       haptic(4);
     });
   });
+  const helpFaqSearchInput = document.getElementById('helpFaqSearchInput');
+  const helpFaqEmpty       = document.getElementById('helpFaqEmpty');
+  if (helpFaqSearchInput) {
+    helpFaqSearchInput.addEventListener('input', () => {
+      const query = helpFaqSearchInput.value.trim().toLowerCase();
+      let visible = 0;
+      helpFaqItems.forEach(item => {
+        const qText = (item.querySelector('.help-faq-q-text')?.textContent || '').toLowerCase();
+        const aText = (item.querySelector('.help-faq-a-pad')?.textContent || '').toLowerCase();
+        const match = !query || qText.includes(query) || aText.includes(query);
+        item.hidden = !match;
+        if (match) visible++;
+      });
+      if (helpFaqEmpty) helpFaqEmpty.hidden = visible !== 0;
+    });
+  }
   // Phase 6c — Email change/add. The Изменить / Добавить button toggles
   // an inline form (matching the change-password disclosure pattern).
   // Submit calls /api/auth/email/change with the new email + current

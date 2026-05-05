@@ -7218,8 +7218,7 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   gap: 16px;
 }
 
-.about-sheet-title,
-.help-sheet-title {
+.about-sheet-title {
   margin: 4px 0 0;
   font-family: var(--fdisp);
   font-size: 22px;
@@ -7227,6 +7226,8 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   color: var(--t1);
   letter-spacing: -.5px;
 }
+/* Phase 6d.5: deleted .help-sheet-title rule — replaced by
+   .help-page-title inside the new page-head structure. */
 
 /* ── About sheet content ─────────────────────────────────────────── */
 .about-tagline {
@@ -7308,82 +7309,249 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   border-color: rgba(198, 183, 155, 0.32);
 }
 
-/* ── Help sheet — FAQ accordion ──────────────────────────────────── */
-.faq-list {
+/* ── Phase 6d.5: Help sheet redesign ─────────────────────────────────
+   Adopts fork-redesign.html structure: page-head + faq-search +
+   numbered glass FAQ items + contact-card. Replaces ~80 lines of the
+   original .faq-* + .help-support-cta rules. Theme-mapped via
+   --bg/--bg2/--t1..t4/--border so all 4 themes work. */
+
+/* Page header */
+.help-page-head {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding: 0 4px 6px;
+}
+.help-page-title {
+  margin: 0;
+  font-family: var(--fdisp);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--t1);
+}
+.help-page-id {
+  font-family: var(--fmono);
+  font-size: 11px;
+  color: var(--t4);
+  letter-spacing: 0.06em;
+}
+.help-section-title {
+  font-family: var(--fmono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--t3);
+  padding: 0 6px 4px;
+  margin-top: 2px;
 }
 
-.faq-item {
-  border-bottom: 1px solid rgba(198, 183, 155, 0.08);
+/* Search input */
+.help-faq-search {
+  position: relative;
+  margin-bottom: 4px;
 }
-.faq-item:last-child { border-bottom: none; }
-
-.faq-question {
+.help-faq-search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--t3);
+  pointer-events: none;
+}
+.help-faq-search-input {
   width: 100%;
+  height: 50px;
+  padding: 0 18px 0 46px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--t1);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.help-faq-search-input::placeholder { color: var(--t4); }
+.help-faq-search-input:focus {
+  border-color: rgba(var(--t1-rgb, 245, 235, 215), 0.35);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+/* FAQ accordion */
+.help-faq-list {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 4px;
-  background: transparent;
+  flex-direction: column;
+  gap: 10px;
+}
+.help-faq-item {
+  background: linear-gradient(
+    180deg,
+    rgba(var(--t1-rgb, 245, 235, 215), 0.04),
+    rgba(var(--t1-rgb, 245, 235, 215), 0.018)
+  );
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+.help-faq-item.open {
+  border-color: rgba(var(--t1-rgb, 245, 235, 215), 0.18);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--t1-rgb, 245, 235, 215), 0.055),
+    rgba(var(--t1-rgb, 245, 235, 215), 0.025)
+  );
+}
+.help-faq-q {
+  width: 100%;
+  padding: 18px 20px;
+  background: none;
   border: none;
-  cursor: pointer;
+  color: var(--t1);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
   text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  letter-spacing: -0.005em;
+}
+.help-faq-q-text { flex: 1; min-width: 0; }
+.help-faq-num {
+  font-family: var(--fmono);
+  font-size: 10px;
+  color: var(--t4);
+  margin-right: 8px;
+  letter-spacing: 0.05em;
+}
+.help-faq-chevron {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  color: var(--t3);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s;
+  flex-shrink: 0;
+}
+.help-faq-chevron svg { width: 12px; height: 12px; }
+.help-faq-item.open .help-faq-chevron {
+  transform: rotate(180deg);
+  color: var(--t1);
+}
+.help-faq-a {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.help-faq-item.open .help-faq-a { grid-template-rows: 1fr; }
+.help-faq-a-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.help-faq-a-pad {
+  padding: 0 20px 20px;
+  color: var(--t2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.help-faq-empty {
+  margin: 24px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--t3);
+}
+
+/* Contact card */
+.help-contact-card {
+  margin-top: 24px;
+  padding: 24px 22px;
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(var(--t1-rgb, 245, 235, 215), 0.05), transparent 60%),
+    linear-gradient(180deg, rgba(var(--t1-rgb, 245, 235, 215), 0.045), rgba(var(--t1-rgb, 245, 235, 215), 0.02));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.help-contact-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(400px 200px at 50% 120%, rgba(var(--t1-rgb, 245, 235, 215), 0.04), transparent 70%);
+  pointer-events: none;
+}
+.help-contact-eyebrow {
+  font-family: var(--fmono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--t3);
+  margin-bottom: 10px;
+}
+.help-contact-title {
+  font-family: var(--fdisp);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-bottom: 6px;
+  color: var(--t1);
+}
+.help-contact-sub {
+  font-size: 13px;
+  color: var(--t2);
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+.help-contact-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.help-contact-btn {
+  flex: 1;
+  min-width: 140px;
+  height: 50px;
+  padding: 0 16px;
+  background: rgba(var(--t1-rgb, 245, 235, 215), 0.04);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--t1);
   font: inherit;
   font-size: 14px;
-  color: var(--t1);
-  line-height: 1.35;
-}
-.faq-question span { flex: 1; min-width: 0; }
-.faq-chev {
-  flex-shrink: 0;
-  color: var(--t3);
-  transition: transform 220ms ease;
-}
-.faq-item.open .faq-chev {
-  transform: rotate(180deg);
-  color: var(--t2);
-}
-
-.faq-answer {
-  overflow: hidden;
-  max-height: 0;
-  padding: 0 4px;
-  transition: max-height 360ms cubic-bezier(.4, 0, .2, 1),
-              padding-bottom 280ms ease;
-}
-.faq-answer p {
-  margin: 0;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--t2);
-}
-.faq-item.open .faq-answer {
-  max-height: 480px;
-  padding-bottom: 14px;
-}
-
-.help-support-cta {
+  font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  margin-top: 8px;
-  padding: 14px 20px;
-  background: rgba(198, 183, 155, 0.08);
-  border: 1px solid rgba(198, 183, 155, 0.22);
-  border-radius: 14px;
-  color: var(--t1);
+  cursor: pointer;
   text-decoration: none;
-  font-size: 15px;
-  font-weight: 500;
-  transition: background 160ms ease, border-color 160ms ease;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
 }
-.help-support-cta:hover {
-  background: rgba(198, 183, 155, 0.13);
-  border-color: rgba(198, 183, 155, 0.38);
+.help-contact-btn:hover {
+  background: rgba(var(--t1-rgb, 245, 235, 215), 0.08);
+  border-color: rgba(var(--t1-rgb, 245, 235, 215), 0.18);
+  transform: translateY(-1px);
+}
+.help-contact-btn svg { width: 15px; height: 15px; }
+.help-contact-btn--primary {
+  background: var(--t1);
+  color: var(--bg);
+  border-color: transparent;
+}
+.help-contact-btn--primary:hover {
+  background: var(--t1);
+  box-shadow: 0 8px 24px -8px rgba(var(--t1-rgb, 245, 235, 215), 0.4);
 }
 
 /* Reduced-motion: skip the slide + accordion easing. */
@@ -7396,8 +7564,8 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   }
   .about-sheet-card,
   .help-sheet-card { transform: translate3d(0, 0, 0); }
-  .faq-answer { transition: none; }
-  .faq-chev { transition: none; }
+  .help-faq-a { transition: none; }
+  .help-faq-chevron { transition: none; }
 }
 
 

@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/app.css?v=20260506-phase6d4">
+  <link rel="stylesheet" href="/static/css/app.css?v=20260506-phase6d5">
   <!-- legal-article.css styles the .legal-doc article body (typography,
        spacing, table of contents). Loaded here because the Phase 6d.3
        in-app legal popup injects /privacy and /terms article content
@@ -1300,116 +1300,149 @@
     <div class="help-sheet-card glass glass--strong" role="dialog" aria-modal="true" aria-label="Помощь" id="helpSheetCard">
       <div class="help-sheet-handle" aria-hidden="true"></div>
 
+      <!-- Phase 6d.5: full restructure to fork-redesign.html aesthetic.
+           page-head + faq-search + section-title + numbered glass FAQ
+           items + contact-card with Email + Telegram action buttons. -->
       <div class="help-sheet-body">
-        <h2 class="help-sheet-title">Помощь</h2>
 
-        <div class="faq-list">
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Как FORK определяет калории по фото?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>Несколько шагов: сначала ИИ определяет, что на тарелке, потом оценивает порции по визуальным ориентирам (тарелка, вилка, ваши руки), потом проверяет данные по базам российских и зарубежных продуктов. На последнем шаге второй ИИ перепроверяет результат.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Насколько точна оценка?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>Для блюд с чёткими ингредиентами (мясо, рис, паста) — обычно ±10-15%. Для смешанных блюд (борщ, плов, салаты) — менее точно. Если уверенность низкая, мы помечаем это в результате — и можно поправить вручную.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Что делать, если оценка неверная?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>На экране результатов можно изменить граммы любого ингредиента, добавить или удалить продукт. Все правки сохраняются — и помогают системе становиться точнее.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Что происходит с моими фотографиями?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>Хранятся в зашифрованном виде на наших серверах в России. Никому не передаются. Можно удалить любой скан или весь аккаунт — данные стираются безвозвратно.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Можно ли пользоваться без интернета?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>Для нового скана — нужен интернет. Сохранённая история отображается без сети.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Сколько сканов можно сделать в день?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>До 20 в день для зарегистрированных пользователей. Если нужно больше — напишите в поддержку, увеличим.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Что значит «не съел»?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>Иногда фотографируешь еду, но не съедаешь её всю или передумываешь. Эта пометка не учитывается в дневной норме калорий — только то, что вы реально съели.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Можно ли использовать на нескольких устройствах?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>Да. Войдите с тем же аккаунтом, и история, настройки и вода синхронизируются автоматически.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Забыл пароль — что делать?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>На странице входа нажмите «Забыли пароль?». Введите email, и мы пришлём ссылку для сброса. Срок действия ссылки — 1 час.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Как добавить блюдо вручную?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>На экране результатов есть кнопка «+ Ингредиент». Введите название и граммы — система найдёт калорийность по нашей базе.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Что такое режим гостя?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>Первые 5 сканов можно сделать без регистрации, чтобы попробовать. После этого нужно создать аккаунт — все ваши предыдущие сканы сохранятся в нём.</p></div>
-          </div>
-
-          <div class="faq-item">
-            <button class="faq-question" type="button" aria-expanded="false">
-              <span>Как удалить аккаунт?</span>
-              <svg class="faq-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </button>
-            <div class="faq-answer"><p>Дополнительно → Настройки аккаунта → Удалить аккаунт. Подтвердите паролем. Все данные удаляются безвозвратно (кроме обезличенных значений, которые помогают улучшать систему).</p></div>
-          </div>
-
+        <div class="help-page-head">
+          <h2 class="help-page-title">Помощь</h2>
+          <div class="help-page-id">12 вопросов</div>
         </div>
 
-        <a class="help-support-cta" href="https://t.me/ForkWorkBro" target="_blank" rel="noopener">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" aria-hidden="true">
-            <path d="M21 5L2 12.5l7 1.5 1.5 7L21 5z"/>
-            <path d="M21 5l-12 9"/>
+        <!-- Live search filter — substring match on Q + A text. -->
+        <div class="help-faq-search">
+          <svg class="help-faq-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M20 20l-3.5-3.5"/>
           </svg>
-          <span>Связаться с поддержкой</span>
-        </a>
+          <input class="help-faq-search-input" id="helpFaqSearchInput" type="text" placeholder="Поиск по вопросам…" autocapitalize="off" spellcheck="false">
+        </div>
+
+        <div class="help-section-title">Частые вопросы</div>
+
+        <div class="help-faq-list" id="helpFaqList">
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">01</span>Как FORK определяет калории по фото?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">Несколько шагов: сначала ИИ определяет, что на тарелке, потом оценивает порции по визуальным ориентирам (тарелка, вилка, ваши руки), потом проверяет данные по базам российских и зарубежных продуктов. На последнем шаге второй ИИ перепроверяет результат.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">02</span>Насколько точна оценка?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">Для блюд с чёткими ингредиентами (мясо, рис, паста) — обычно ±10-15%. Для смешанных блюд (борщ, плов, салаты) — менее точно. Если уверенность низкая, мы помечаем это в результате — и можно поправить вручную.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">03</span>Что делать, если оценка неверная?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">На экране результатов можно изменить граммы любого ингредиента, добавить или удалить продукт. Все правки сохраняются — и помогают системе становиться точнее.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">04</span>Что происходит с моими фотографиями?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">Хранятся в зашифрованном виде на наших серверах в России. Никому не передаются. Можно удалить любой скан или весь аккаунт — данные стираются безвозвратно.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">05</span>Можно ли пользоваться без интернета?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">Для нового скана — нужен интернет. Сохранённая история отображается без сети.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">06</span>Сколько сканов можно сделать в день?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">До 20 в день для зарегистрированных пользователей. Если нужно больше — напишите в поддержку, увеличим.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">07</span>Что значит «не съел»?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">Иногда фотографируешь еду, но не съедаешь её всю или передумываешь. Эта пометка не учитывается в дневной норме калорий — только то, что вы реально съели.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">08</span>Можно ли использовать на нескольких устройствах?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">Да. Войдите с тем же аккаунтом, и история, настройки и вода синхронизируются автоматически.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">09</span>Забыл пароль — что делать?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">На странице входа нажмите «Забыли пароль?». Введите email, и мы пришлём ссылку для сброса. Срок действия ссылки — 1 час.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">10</span>Как добавить блюдо вручную?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">На экране результатов есть кнопка «+ Ингредиент». Введите название и граммы — система найдёт калорийность по нашей базе.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">11</span>Что такое режим гостя?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">Первые 5 сканов можно сделать без регистрации, чтобы попробовать. После этого нужно создать аккаунт — все ваши предыдущие сканы сохранятся в нём.</div></div></div>
+          </div>
+
+          <div class="help-faq-item">
+            <button class="help-faq-q" type="button" aria-expanded="false">
+              <span class="help-faq-q-text"><span class="help-faq-num">12</span>Как удалить аккаунт?</span>
+              <span class="help-faq-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+            </button>
+            <div class="help-faq-a"><div class="help-faq-a-inner"><div class="help-faq-a-pad">Дополнительно → Настройки аккаунта → Удалить аккаунт. Подтвердите паролем. Все данные удаляются безвозвратно (кроме обезличенных значений, которые помогают улучшать систему).</div></div></div>
+          </div>
+
+          <p class="help-faq-empty" id="helpFaqEmpty" hidden>Ничего не нашлось. Попробуйте другие слова.</p>
+        </div>
+
+        <!-- Contact card — eyebrow + title + sub + Email/Telegram CTAs -->
+        <div class="help-contact-card">
+          <div class="help-contact-eyebrow">Не нашли ответ?</div>
+          <div class="help-contact-title">Напишите нам</div>
+          <div class="help-contact-sub">Обычно отвечаем в течение нескольких часов. Прикрепите скриншот, если можете — это ускорит разбор.</div>
+          <div class="help-contact-actions">
+            <a class="help-contact-btn help-contact-btn--primary" href="mailto:support@myfork.ru">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="M3 7l9 6 9-6M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7a2 2 0 012-2h14a2 2 0 012 2"/>
+              </svg>
+              Email
+            </a>
+            <a class="help-contact-btn" href="https://t.me/ForkWorkBro" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 5L2 12.5l7 1.5 1.5 7L21 5z"/>
+                <path d="M21 5l-12 9"/>
+              </svg>
+              Telegram
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1434,7 +1467,7 @@
   <script src="/static/js/spring.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/storage.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/api.js?v=20260505-phase35b-trigger"></script>
-  <script src="/static/js/app.js?v=20260506-phase6d4"></script>
+  <script src="/static/js/app.js?v=20260506-phase6d5"></script>
   <script src="/static/js/cookie-banner.js?v=20260504-1" defer></script>
 </body>
 </html>
