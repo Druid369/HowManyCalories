@@ -7514,3 +7514,107 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   .faq-answer { transition: none; }
   .faq-chev { transition: none; }
 }
+
+
+/* ════════════════════════════════════════════════════════════════════
+   PHASE 6d.3 — In-app legal popup (Политика / Условия)
+
+   Replaces target=_blank navigation on legal links inside the main
+   app (About sub-sheet, Дополнительно version footer). Mirrors the
+   /login legal-modal pattern but follows the main app's no-X /
+   swipe-down convention.
+
+   The injected .legal-doc article inherits the user's current theme
+   via the data-theme attribute on <html> (legal-article.css uses the
+   shared --t1/--t2/--bg theme tokens, so the popup automatically
+   matches whatever theme the user picked in the Theme drawer).
+   ════════════════════════════════════════════════════════════════════ */
+.legal-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  pointer-events: none;
+}
+.legal-modal.visible { pointer-events: auto; }
+
+.legal-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  opacity: 0;
+  transition: opacity 280ms ease;
+  -webkit-backdrop-filter: blur(2px);
+          backdrop-filter: blur(2px);
+}
+.legal-modal.visible .legal-modal-backdrop { opacity: 1; }
+
+.legal-modal-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0 auto;
+  width: 100%;
+  /* Wider than the action sub-sheets — legal docs are content-heavy
+     and benefit from more horizontal room on tablets/desktop. */
+  max-width: 720px;
+  height: 92vh;
+  border-radius: 22px 22px 0 0;
+  background: var(--bg2);
+  box-shadow:
+    0 -10px 40px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(198, 183, 155, 0.10);
+  transform: translate3d(0, 100%, 0);
+  transition: transform 380ms cubic-bezier(.4, 0, .2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.legal-modal.visible .legal-modal-sheet {
+  transform: translate3d(0, 0, 0);
+}
+
+.legal-modal-handle {
+  width: 40px;
+  height: 4px;
+  margin: 9px auto 0;
+  border-radius: 999px;
+  background: rgba(198, 183, 155, 0.22);
+  flex-shrink: 0;
+}
+
+.legal-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 22px 32px;
+  outline: none;
+}
+.legal-modal-content::-webkit-scrollbar { width: 0; }
+
+.legal-modal-content .legal-error {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--t3);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.legal-modal-content .legal-error a {
+  color: var(--t1);
+  text-decoration: none;
+  border-bottom: 1px dotted rgba(198, 183, 155, 0.30);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legal-modal-sheet,
+  .legal-modal-backdrop {
+    transition: opacity 180ms ease;
+  }
+  .legal-modal-sheet { transform: translate3d(0, 0, 0); }
+}
+
+/* Body scroll-lock while modal is open (matches the /login flow). */
+html.legal-locked, html.legal-locked body {
+  overflow: hidden;
+}

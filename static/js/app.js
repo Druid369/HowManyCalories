@@ -2960,6 +2960,11 @@ const acctSettingsSheetCard   = $('acctSettingsSheetCard');
 const aboutSheetCard          = $('aboutSheetCard');
 const helpSheetCard           = $('helpSheetCard');
 
+// Phase 6d.3 — in-app legal popup refs.
+const legalModal              = $('legalModal');
+const legalModalSheet         = $('legalModalSheet');
+const legalModalContent       = $('legalModalContent');
+
 // Phase 6c — Email change/add element references.
 const btnAcctSettingsEditEmail    = $('btnAcctSettingsEditEmail');
 const acctSettingsEmailEditForm   = $('acctSettingsEmailEditForm');
@@ -3335,6 +3340,98 @@ function closeHelpSheet() {
   helpSheet.classList.remove('visible');
   document.documentElement.classList.remove('help-sheet-open');
   setTimeout(() => helpSheet.setAttribute('aria-hidden', 'true'), 400);
+}
+
+// Phase 6d.3 — In-app legal popup. Mirrors the /login implementation
+// (fetch /privacy or /terms, parse with DOMParser, inject the
+// .legal-doc article into #legalModalContent) but adapted for the main
+// app: no X close (swipe + backdrop only), wider sheet (legal docs are
+// content-heavy), inherits the user's current theme automatically since
+// legal-article.css uses the shared --t1/--t2/--bg theme tokens.
+const _legalCache = {};
+let _legalInfoPromise = null;
+
+function _getLegalInfo() {
+  if (!_legalInfoPromise) {
+    _legalInfoPromise = fetch('/api/legal/info', { credentials: 'same-origin' })
+      .then(r => r.ok ? r.json() : {})
+      .catch(() => ({}));
+  }
+  return _legalInfoPromise;
+}
+
+function _fillLegalPlaceholders(root, info) {
+  if (!info) return;
+  root.querySelectorAll('.legal-fill').forEach(el => {
+    const key = el.dataset.legal;
+    if (key && info[key]) el.textContent = info[key];
+  });
+}
+
+function _rewireLegalInternalLinks(root) {
+  // Internal /privacy ↔ /terms links inside the article get rewritten
+  // to swap the modal content rather than navigate away.
+  root.querySelectorAll('a[href]').forEach(a => {
+    const href = a.getAttribute('href') || '';
+    if (href === '/privacy') {
+      a.dataset.legal = 'privacy';
+      a.removeAttribute('target');
+    } else if (href === '/terms') {
+      a.dataset.legal = 'terms';
+      a.removeAttribute('target');
+    }
+  });
+}
+
+function _renderLegalError(path) {
+  if (!legalModalContent) return;
+  legalModalContent.innerHTML =
+    '<div class="legal-error">Не удалось загрузить документ.<br>' +
+    '<a href="' + path + '" target="_blank" rel="noopener">Открыть в новой вкладке →</a>' +
+    '</div>';
+}
+
+async function openLegal(kind) {
+  if (!legalModal || !legalModalContent) return false;
+  const path = kind === 'terms' ? '/terms' : '/privacy';
+
+  legalModalContent.innerHTML = '';
+  legalModal.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => legalModal.classList.add('visible'));
+  document.documentElement.classList.add('legal-locked');
+
+  try {
+    let html = _legalCache[kind];
+    if (!html) {
+      const res = await fetch(path, { credentials: 'same-origin' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      html = await res.text();
+      _legalCache[kind] = html;
+    }
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const article = doc.querySelector('.legal-doc');
+    if (!article) throw new Error('Article not found in response');
+    const clone = article.cloneNode(true);
+    _rewireLegalInternalLinks(clone);
+    const info = await _getLegalInfo();
+    _fillLegalPlaceholders(clone, info);
+    legalModalContent.innerHTML = '';
+    legalModalContent.appendChild(clone);
+    legalModalContent.scrollTop = 0;
+  } catch {
+    _renderLegalError(path);
+  }
+  return true;
+}
+
+function closeLegal() {
+  if (!legalModal) return;
+  legalModal.classList.remove('visible');
+  document.documentElement.classList.remove('legal-locked');
+  setTimeout(() => {
+    legalModal.setAttribute('aria-hidden', 'true');
+    if (legalModalContent) legalModalContent.innerHTML = '';
+  }, 400);
 }
 
 function setAccountSheetError(msg, kind) {
@@ -4597,6 +4694,33 @@ function setupAccount() {
   if (helpSheetCard) {
     const body = helpSheetCard.querySelector('.help-sheet-body');
     attachSheetDragToClose(helpSheetCard, closeHelpSheet, body);
+  }
+
+  // Phase 6d.3 — legal popup wiring. One delegated click handler at the
+  // document level catches every [data-legal] anchor (current + future)
+  // and routes to openLegal(). [data-legal-close] handles backdrop tap.
+  // ESC closes from anywhere. Drag-to-close on the sheet itself.
+  document.addEventListener('click', e => {
+    const a = e.target.closest && e.target.closest('a[data-legal]');
+    if (a) {
+      const kind = a.dataset.legal;
+      if (kind === 'privacy' || kind === 'terms') {
+        e.preventDefault();
+        openLegal(kind);
+      }
+      return;
+    }
+    if (e.target.closest && e.target.closest('[data-legal-close]')) {
+      closeLegal();
+    }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && legalModal && legalModal.classList.contains('visible')) {
+      closeLegal();
+    }
+  });
+  if (legalModalSheet) {
+    attachSheetDragToClose(legalModalSheet, closeLegal, legalModalContent);
   }
   document.querySelectorAll('.faq-item').forEach(item => {
     const q = item.querySelector('.faq-question');

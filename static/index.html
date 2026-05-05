@@ -32,7 +32,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/app.css?v=20260506-phase6d2">
+  <link rel="stylesheet" href="/static/css/app.css?v=20260506-phase6d3">
+  <!-- legal-article.css styles the .legal-doc article body (typography,
+       spacing, table of contents). Loaded here because the Phase 6d.3
+       in-app legal popup injects /privacy and /terms article content
+       directly into #legalModalContent — the same shared stylesheet
+       /login uses for its own popup. -->
+  <link rel="stylesheet" href="/static/css/legal-article.css?v=20260506-phase6d3">
   <link rel="stylesheet" href="/static/css/cookie-banner.css?v=20260504-1">
 </head>
 <body>
@@ -881,15 +887,15 @@
 
             </div>
 
-            <!-- Version footer — quiet metadata + legal links. Build date
-                 is hand-bumped on releases; full automation comes with
-                 the Phase 4 deploy pipeline. -->
+            <!-- Version footer — quiet metadata + legal links. Phase 6d.3
+                 swapped target=_blank for data-legal so links open as
+                 the in-app theme-aware popup instead of a new tab. -->
             <div class="account-version-footer">
               <div class="account-version-line">FORK · v1.6 · 2026-05-05</div>
               <div class="account-version-legal">
-                <a href="/privacy" target="_blank" rel="noopener">Политика</a>
+                <a href="/privacy" data-legal="privacy">Политика</a>
                 <span aria-hidden="true">·</span>
-                <a href="/terms" target="_blank" rel="noopener">Условия</a>
+                <a href="/terms" data-legal="terms">Условия</a>
               </div>
             </div>
           </div>
@@ -1256,9 +1262,9 @@
         <section class="about-section">
           <h3 class="about-section-title">Документы</h3>
           <p class="about-legal-links">
-            <a href="/privacy" target="_blank" rel="noopener">Политика конфиденциальности</a>
+            <a href="/privacy" data-legal="privacy">Политика конфиденциальности</a>
             <span aria-hidden="true">·</span>
-            <a href="/terms" target="_blank" rel="noopener">Условия использования</a>
+            <a href="/terms" data-legal="terms">Условия использования</a>
           </p>
         </section>
 
@@ -1398,12 +1404,27 @@
     </div>
   </div>
 
+  <!-- Phase 6d.3: in-app legal popup — replaces target=_blank on
+       Политика / Условия links inside the main app. Mirrors the /login
+       legal-modal pattern (fetch /privacy or /terms, parse with
+       DOMParser, inject .legal-doc article into #legalModalContent)
+       but follows the swipe-down / no-X pattern of the main app's
+       sub-sheets. Article body inherits the user's current theme via
+       data-theme on <html> + the legal-article.css token usage. -->
+  <div class="legal-modal" id="legalModal" aria-hidden="true">
+    <div class="legal-modal-backdrop" data-legal-close></div>
+    <div class="legal-modal-sheet" role="dialog" aria-modal="true" aria-label="Документ" id="legalModalSheet">
+      <div class="legal-modal-handle" aria-hidden="true"></div>
+      <div class="legal-modal-content" id="legalModalContent" tabindex="0"></div>
+    </div>
+  </div>
+
   <!-- Cache-bust: bump the ?v= when shipping JS changes so iOS Safari and
        aggressive proxy caches always fetch fresh files. -->
   <script src="/static/js/spring.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/storage.js?v=20260502-account-redesign-7"></script>
   <script src="/static/js/api.js?v=20260505-phase35b-trigger"></script>
-  <script src="/static/js/app.js?v=20260506-phase6d2"></script>
+  <script src="/static/js/app.js?v=20260506-phase6d3"></script>
   <script src="/static/js/cookie-banner.js?v=20260504-1" defer></script>
 </body>
 </html>
