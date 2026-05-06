@@ -4754,24 +4754,24 @@ function setupAccount() {
   if (legalModalSheet) {
     attachSheetDragToClose(legalModalSheet, closeLegal, legalModalContent);
   }
-  // Phase 6d.5: FAQ accordion (single-open behavior matching the
-  // redesign — opening one auto-closes any other open). Selectors
-  // updated to .help-faq-item / .help-faq-q. Plus a live substring
-  // search filter that matches against question + answer text.
+  // Phase 6d.5: FAQ accordion (single-open) + live substring search.
+  // Phase 6d.8: only the currently-open item gets closed on click,
+  // not all 12. Old code did `helpFaqItems.forEach(close)` which
+  // triggered 11 no-op classList operations + style recalcs per tap
+  // (the largest source of the persistent FAQ-lag complaint). Now:
+  // O(1) selector lookup, at most 2 simultaneous transitions per tap.
   const helpFaqItems = document.querySelectorAll('.help-faq-item');
   helpFaqItems.forEach(item => {
     const q = item.querySelector('.help-faq-q');
     if (!q) return;
     q.addEventListener('click', () => {
       const wasOpen = item.classList.contains('open');
-      // Close all others (single-open accordion).
-      helpFaqItems.forEach(other => {
-        if (other !== item) {
-          other.classList.remove('open');
-          const oq = other.querySelector('.help-faq-q');
-          if (oq) oq.setAttribute('aria-expanded', 'false');
-        }
-      });
+      const currentlyOpen = helpSheet && helpSheet.querySelector('.help-faq-item.open');
+      if (currentlyOpen && currentlyOpen !== item) {
+        currentlyOpen.classList.remove('open');
+        const oq = currentlyOpen.querySelector('.help-faq-q');
+        if (oq) oq.setAttribute('aria-expanded', 'false');
+      }
       item.classList.toggle('open', !wasOpen);
       q.setAttribute('aria-expanded', !wasOpen ? 'true' : 'false');
       haptic(4);

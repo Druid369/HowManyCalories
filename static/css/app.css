@@ -4423,15 +4423,25 @@ html {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  /* Reserve bottom space for the action strip's slot. The strip is
-     position: absolute and overlays this region when it appears.
-     Phase 6d.1: trimmed from 100px to 56px after Eugene flagged
-     "2-3cm dead space" at the bottom of the Дополнительно card.
-     The actions strip itself is ~52px tall, so 56px still keeps
-     it from clipping content underneath without the wasted look. */
-  padding-bottom: 56px;
+  /* Phase 6d.8: bottom padding is now conditional. Default = 14px
+     breathing room (no actions strip showing). When .has-changes is
+     active on the parent .account-sheet-content (= the Save/Cancel
+     strip is animating in), the padding expands to 64px so the
+     strip doesn't clip content underneath. Animated for smoothness.
+     Eugene's repeated complaint about dead space at the bottom of
+     the Дополнительно card was always-reserved padding even when
+     no strip was present. */
+  padding-bottom: 14px;
+  transition: padding-bottom .28s ease;
 }
 .account-scroll::-webkit-scrollbar { display: none; }
+
+/* Phase 6d.8: expand bottom padding only when the actions strip is
+   visible. The .has-changes class is set by recomputeAccountDirty()
+   on the .account-sheet-content when the user has unsaved edits. */
+.account-sheet-content.has-changes .account-scroll {
+  padding-bottom: 64px;
+}
 
 /* Card — the signature container. Soft raised neumorphic surface. */
 .account-card {
@@ -4873,11 +4883,13 @@ html {
 .account-advanced > .account-theme-drawer:not(.open) { margin-bottom: 0; }
 .account-disclosure {
   width: 100%;
-  /* Phase 6d.7: explicit min-height so all 4 tiles read as visually
-     balanced regardless of whether their content has a sub-label
-     (Theme has 'Уголь', others don't). Matches the Theme tile's
-     natural height (icon 36 + 14*2 padding = 64px). */
-  min-height: 64px;
+  /* Phase 6d.8: changed min-height → height (strict). min-height let
+     the Theme tile grow taller than the others when its sub-label
+     ('Уголь') text wrapping pushed it over 64px. Strict height +
+     box-sizing border-box forces all 4 tiles to render at exactly
+     64px regardless of content variation. */
+  height: 64px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6873,11 +6885,6 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
 .acct-settings-sheet.visible .acct-settings-sheet-backdrop { opacity: 1; }
 
 .acct-settings-sheet-card {
-  /* Phase 6d.2: positioning refactored for swipe-down compatibility.
-     Was `left: 50%; transform: translate(-50%, ...)` for X-centering;
-     now `left:0; right:0; margin:0 auto` so the drag handler can
-     overwrite `transform` purely on the Y axis without losing
-     X-centering. Same pattern as the parent sheets. */
   position: absolute;
   left: 0;
   right: 0;
@@ -6888,9 +6895,14 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   max-height: 92vh;
   border-radius: 22px 22px 0 0;
   background: var(--bg2);
-  box-shadow:
-    0 -10px 40px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(198, 183, 155, 0.10);
+  /* Phase 6d.8: removed the outer drop shadow `0 -10px 40px rgba(0,0,0,.5)`.
+     It extends 50px UP from the card's top edge — when the card is
+     translated 100% off-screen (closed state), that 50px shadow
+     band is still rendered INSIDE the viewport, bleeding a dark
+     gradient at the bottom of every page. Inner highlight kept; the
+     backdrop blur+dim provides plenty of separation when the sheet
+     is actually open. */
+  box-shadow: inset 0 1px 0 rgba(198, 183, 155, 0.10);
   transform: translate3d(0, 100%, 0);
   transition: transform 380ms cubic-bezier(.4, 0, .2, 1);
   display: flex;
@@ -6990,9 +7002,6 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
 
 .about-sheet-card,
 .help-sheet-card {
-  /* Phase 6d.2: same positioning refactor as acct-settings-sheet-card
-     above — left:0/right:0/margin:0 auto so drag-to-close can own the
-     transform without breaking X-centering. */
   position: absolute;
   left: 0;
   right: 0;
@@ -7003,9 +7012,9 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   max-height: 92vh;
   border-radius: 22px 22px 0 0;
   background: var(--bg2);
-  box-shadow:
-    0 -10px 40px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(198, 183, 155, 0.10);
+  /* Phase 6d.8: removed outer drop shadow — see acct-settings-sheet-card
+     comment. Same fix for the same bottom-bleed bug. */
+  box-shadow: inset 0 1px 0 rgba(198, 183, 155, 0.10);
   transform: translate3d(0, 100%, 0);
   transition: transform 380ms cubic-bezier(.4, 0, .2, 1);
   display: flex;
@@ -7275,16 +7284,21 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   transform: rotate(180deg);
   color: var(--t1);
 }
+/* Phase 6d.8: switched from grid-template-rows 0fr→1fr to max-height
+   transition. The grid trick is theoretically smoother but Eugene's
+   reports of accordion lag persisted on iOS Safari even with `contain`
+   added. max-height transitions are battle-tested cross-browser and
+   have a well-known compositor path. The downside (timing slightly
+   off when content is shorter than max) is invisible at this scale —
+   FAQ answers are 60-200px tall, max-height: 360px gives plenty of
+   headroom and the transition still completes in ~280ms. */
 .help-faq-a {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.help-faq-item.open .help-faq-a { grid-template-rows: 1fr; }
-.help-faq-a-inner {
+  max-height: 0;
   overflow: hidden;
-  min-height: 0;
+  transition: max-height .28s cubic-bezier(.4, 0, .2, 1);
 }
+.help-faq-item.open .help-faq-a { max-height: 360px; }
+.help-faq-a-inner { /* no special rules needed for max-height path */ }
 .help-faq-a-pad {
   padding: 0 20px 20px;
   color: var(--t2);
@@ -7441,9 +7455,8 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   height: 92vh;
   border-radius: 22px 22px 0 0;
   background: var(--bg2);
-  box-shadow:
-    0 -10px 40px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(198, 183, 155, 0.10);
+  /* Phase 6d.8: removed outer drop shadow — see acct-settings-sheet-card. */
+  box-shadow: inset 0 1px 0 rgba(198, 183, 155, 0.10);
   transform: translate3d(0, 100%, 0);
   transition: transform 380ms cubic-bezier(.4, 0, .2, 1);
   display: flex;
