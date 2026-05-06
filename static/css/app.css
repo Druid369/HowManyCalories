@@ -4860,10 +4860,24 @@ html {
   padding: 4px 0 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
+/* Phase 6d.7: replaced flex `gap: 4px` with per-child margin so the
+   theme drawer (a flex child between Theme + Settings) doesn't
+   double-contribute spacing when collapsed. With gap, the closed
+   drawer added 4 + 0 + 4 = 8px between Theme and Settings, while
+   About-Help only had 4px. Now: each child has margin-bottom: 4px,
+   collapsed drawer drops its own margin to 0, so spacing is uniform
+   4px regardless of drawer state. */
+.account-advanced > * { margin-bottom: 4px; }
+.account-advanced > *:last-child { margin-bottom: 0; }
+.account-advanced > .account-theme-drawer:not(.open) { margin-bottom: 0; }
 .account-disclosure {
   width: 100%;
+  /* Phase 6d.7: explicit min-height so all 4 tiles read as visually
+     balanced regardless of whether their content has a sub-label
+     (Theme has 'Уголь', others don't). Matches the Theme tile's
+     natural height (icon 36 + 14*2 padding = 64px). */
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -7190,30 +7204,36 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   background: rgba(0, 0, 0, 0.28);
 }
 
-/* FAQ accordion */
+/* FAQ accordion — Phase 6d.7 perf pass:
+   - Replaced the linear-gradient backgrounds (open + closed states)
+     with flat rgba surfaces. Gradients on 12 items + transitioning
+     the gradient stops on every open/close was a measurable hit on
+     mobile.
+   - Added `contain: layout style paint` to each item so opening one
+     doesn't trigger a flex re-layout across the other 11. This was
+     the largest single source of the 'feels laggy' complaint —
+     without containment, the accordion's grid-template-rows
+     transition ripples through the whole .help-faq-list flex column
+     every frame.
+   - Removed the `transition: background` (only border-color animates
+     now). One less property the compositor has to track per frame
+     across all items. */
 .help-faq-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 .help-faq-item {
-  background: linear-gradient(
-    180deg,
-    rgba(var(--t1-rgb, 245, 235, 215), 0.04),
-    rgba(var(--t1-rgb, 245, 235, 215), 0.018)
-  );
+  background: rgba(var(--t1-rgb, 245, 235, 215), 0.035);
   border: 1px solid var(--border);
   border-radius: 20px;
   overflow: hidden;
-  transition: border-color 0.3s ease, background 0.3s ease;
+  transition: border-color 0.25s ease;
+  contain: layout style paint;
 }
 .help-faq-item.open {
   border-color: rgba(var(--t1-rgb, 245, 235, 215), 0.18);
-  background: linear-gradient(
-    180deg,
-    rgba(var(--t1-rgb, 245, 235, 215), 0.055),
-    rgba(var(--t1-rgb, 245, 235, 215), 0.025)
-  );
+  background: rgba(var(--t1-rgb, 245, 235, 215), 0.055);
 }
 .help-faq-q {
   width: 100%;
@@ -7279,24 +7299,23 @@ html.upgrade-sheet-open, html.upgrade-sheet-open body {
   color: var(--t3);
 }
 
-/* Contact card */
+/* Contact card — Phase 6d.7: simplified from a triple-gradient stack
+   (radial + linear + ::after radial) to a single linear gradient.
+   The ::after overlay was suspected of stacking above the action
+   buttons in some renderers (pointer-events:none kept clicks working
+   but the visual could obscure the Email/Telegram CTAs). Solid
+   background also drops 3 GPU compositing layers — measurable win
+   for the 'Help popup feels laggy' complaint. */
 .help-contact-card {
   margin-top: 24px;
   padding: 24px 22px;
-  background:
-    radial-gradient(120% 80% at 100% 0%, rgba(var(--t1-rgb, 245, 235, 215), 0.05), transparent 60%),
-    linear-gradient(180deg, rgba(var(--t1-rgb, 245, 235, 215), 0.045), rgba(var(--t1-rgb, 245, 235, 215), 0.02));
+  background: linear-gradient(
+    180deg,
+    rgba(var(--t1-rgb, 245, 235, 215), 0.045),
+    rgba(var(--t1-rgb, 245, 235, 215), 0.02)
+  );
   border: 1px solid var(--border);
   border-radius: 20px;
-  position: relative;
-  overflow: hidden;
-}
-.help-contact-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(400px 200px at 50% 120%, rgba(var(--t1-rgb, 245, 235, 215), 0.04), transparent 70%);
-  pointer-events: none;
 }
 .help-contact-eyebrow {
   font-family: var(--fmono);
